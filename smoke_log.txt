@@ -1,0 +1,13 @@
+Timestamp: 2026-05-23 16:19:40
+State: SMOKE
+Score: 999
+PM1.0 | measured=14.8 µg/m³ | short_avg=14.9 | short_delta=-0.1 | long_avg=14.9 | long_delta=-0.1 | long_delta_point=yes | spike_point=yes
+PM2.5 | measured=18.1 µg/m³ | short_avg=18.2 | short_delta=-0.1 | long_avg=18.2 | long_delta=-0.1 | abs_point=yes | long_delta_point=yes | short_vs_long_point=yes | spike_point=yes
+PM4.0 | measured=20.2 µg/m³ | short_avg=20.3 | short_delta=-0.1 | long_avg=20.3 | long_delta=-0.1 | point=no
+PM10 | measured=21.3 µg/m³ | short_avg=21.4 | short_delta=-0.1 | long_avg=21.4 | long_delta=-0.1 | point=no
+Humidity | measured=56.8 %RH | short_avg=56.8 | short_delta=0.0 | long_avg=56.8 | long_delta=0.0 | point=no
+Temperature | measured=23.5 °C | short_avg=23.5 | short_delta=0.0 | long_avg=23.5 | long_delta=0.0 | point=no
+VOC | measured=108.0 index | short_avg=108.0 | short_delta=0.0 | long_avg=108.0 | long_delta=0.0 | point=yes
+NOx | measured=1.0 index | short_avg=1.0 | short_delta=0.0 | long_avg=1.0 | long_delta=0.0 | point=no
+PM1.0/PM2.5 ratio | measured=0.82 | point=yes
+-----

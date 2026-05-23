@@ -1,0 +1,16 @@
+Activate the I2C interface:
+sudo raspi-config
+=> 5 - Interfacing Options
+=> enable "I2C"
+=> restart 
+
+Virtual Machine Setup:
+cd...
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+
+Install additinal software packages
+sudo apt install -y python3 python3-pip i2c-tools wget
+pip3 install smbus2
+pip install sensirion-i2c-driver

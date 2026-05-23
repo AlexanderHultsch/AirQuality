@@ -13,6 +13,9 @@ from datetime import datetime
 Refresh_rate = 1  # in sec
 pre_trigger_len = int(30 / Refresh_rate) # Number of previous datapoints to be logged once smoke is detected
 
+DEBUG_TRIGGER_ENABLED = True # True to trigger Smoke Detection  
+DEBUG_TRIGGER_AFTER_LOOPS = 5 # Iterations before artificial Smoke Detection is triggered 
+
 Long_max_list_len = int((5 * 60) / Refresh_rate)   # change first int for duration in min
 Short_max_list_len = int((0.25 * 60) / Refresh_rate)  # change first int for duration in min
 
@@ -146,6 +149,7 @@ def analyze_smoke(latest_entry, long_avg, short_avg, long_delta, short_delta):
 
 def log_pre_smoke_window(window_list, smoke_state, smoke_score):
     with open("pre_smoke_log.txt", "a") as f:
+        f.write(f"Trigger timestamp: {window_list[-1][0]}\n")
         f.write(f"Trigger state: {smoke_state}\n")
         f.write(f"Trigger score: {smoke_score}\n")
         f.write("Last 30 seconds before trigger:\n")
@@ -218,6 +222,10 @@ def log_smoke_event(timestamp, smoke_state, smoke_score, latest_entry, short_avg
 
         f.write(f"PM1.0/PM2.5 ratio | measured={pm_ratio} | point={'yes' if criteria['pm_ratio'] else 'no'}\n")
         f.write("-----\n")
+#Events=========================================
+def handle_environment_event(event_type):
+    if event_type == "smoke":
+        print("Fenster schließt")       
         
 #Main===========================================
 # Start Measurement: 0x0021
@@ -225,7 +233,8 @@ bus.i2c_rdwr(i2c_msg.write(ADDR, [0x00, 0x21]))
 print("Messung gestartet...")
 time.sleep(1)
 
-last_smoke_state = "CLEAR" # Default 
+last_smoke_state = "CLEAR" # Default CLEAR
+debug_loop_count = 0 # For debugging only
 
 while True:
     try:
@@ -235,6 +244,9 @@ while True:
             print("Noch keine fertigen Daten")
             time.sleep(Refresh_rate)
             continue
+        
+        debug_loop_count += 1 #Debugging Counter 
+
 
         update_window(Long_window_list, entry, Long_max_list_len)
         update_window(Short_window_list, entry, Short_max_list_len)
@@ -245,7 +257,23 @@ while True:
         short_avg, short_delta = calculate_avg_and_delta(Short_window_list)
 
         if long_avg is not None and short_avg is not None:
-            smoke_state, smoke_score, criteria = analyze_smoke(entry, long_avg, short_avg, long_delta, short_delta)
+            if DEBUG_TRIGGER_ENABLED and debug_loop_count >= DEBUG_TRIGGER_AFTER_LOOPS:
+                smoke_state = "SMOKE"
+                smoke_score = 999
+                criteria = {
+                    "pm2_5_abs": True,
+                    "pm2_5_long_delta": True,
+                    "pm1_0_long_delta": True,
+                    "pm2_5_spike": True,
+                    "pm1_0_spike": True,
+                    "pm2_5_short_vs_long": True,
+                    "pm_ratio": True,
+                    "voc_spike": True
+                }
+                DEBUG_TRIGGER_ENABLED = False
+            else:
+                smoke_state, smoke_score, criteria = analyze_smoke(entry, long_avg, short_avg, long_delta, short_delta)
+            
             print("smoke_state:", smoke_state)
             print("smoke_score:", smoke_score)
             
@@ -256,6 +284,10 @@ while True:
                 log_smoke_event(entry[0], smoke_state, smoke_score, entry, short_avg, long_avg, short_delta, long_delta, criteria)
 
             last_smoke_state = smoke_state
+            
+    #Trigger Events==============     
+        if smoke_state == "SMOKE":
+            handle_environment_event("smoke")   
             
     except Exception as e:
         print("Error in main loop:", e)
