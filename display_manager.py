@@ -3,6 +3,7 @@
 import serial
 import time
 
+
 class DisplayManager:
     PAGE_TEMPERATURE = 0
     PAGE_HUMIDITY = 1
@@ -93,14 +94,6 @@ class DisplayManager:
         self.set_text("status", status)
         self.set_text("trend", trend)
         self.set_text("other", other)
-    
-    def clear_page_content(self):
-        self.set_text("title", "")
-        self.set_text("value", "")
-        self.set_text("unit", "")
-        self.set_text("status", "")
-        self.set_text("trend", "")
-        self.set_text("other", "")
 
     def apply_normal_theme(self):
         self.set_page_background_color(self.COLOR_BLACK)
@@ -223,7 +216,7 @@ class DisplayManager:
             trend=trend,
             other=other,
         )
-        
+
     def show_humidity_page(self, value, status="", trend="", other=""):
         self.goto_page(self.PAGE_HUMIDITY)
         self.update_page_content(
@@ -237,7 +230,6 @@ class DisplayManager:
 
     def show_co2_page(self, value, status="", trend="", other=""):
         self.goto_page(self.PAGE_CO2)
-        self.clear_page_content()
         self.update_page_content(
             title="CO2",
             value=value,
@@ -246,7 +238,7 @@ class DisplayManager:
             trend=trend,
             other=other,
         )
-    
+
     def show_smoke_page(self, value, status="", trend="", other=""):
         self.goto_page(self.PAGE_SMOKE)
         self.update_page_content(

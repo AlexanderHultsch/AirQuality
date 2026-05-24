@@ -370,7 +370,7 @@ def log_smoke_event(timestamp, smoke_state, smoke_score, latest_measurement, sho
         "short_delta_sen55_humidity", "short_delta_sen55_temperature", "short_delta_voc", "short_delta_nox",
         "short_delta_co2", "short_delta_scd41_temperature", "short_delta_scd41_humidity",
 
-        "long_avg_pm1_0", "long_avg_pm2_5", "long_avg_pm4_0", "long_avg_PM10",
+        "long_avg_pm1_0", "long_avg_pm2_5", "long_avg_pm4_0", "long_avg_pm10",
         "long_avg_sen55_humidity", "long_avg_sen55_temperature", "long_avg_voc", "long_avg_nox",
         "long_avg_co2", "long_avg_scd41_temperature", "long_avg_scd41_humidity",
 
@@ -458,6 +458,7 @@ def classify_humidity(value):
     if value < 35 or value > 60:
         return "Elevated", ""
     return "Good", ""
+
 
 def classify_co2(value):
     if value is None:
@@ -612,13 +613,13 @@ def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state
             "critical": humidity_status == "Critical",
         },
         "co2": {
-        "title": "CO2",
-        "value": format_display_value(measurement["co2"]),
-        "unit": "ppm",
-        "status": co2_status,
-        "trend": get_numeric_trend(measurement["co2"], long_avg["co2"], 100.0),
-        "other": co2_other,
-        "critical": co2_status == "Critical",
+            "title": "CO2",
+            "value": format_display_value(measurement["co2"]),
+            "unit": "ppm",
+            "status": co2_status,
+            "trend": get_numeric_trend(measurement["co2"], long_avg["co2"], 100.0),
+            "other": co2_other,
+            "critical": co2_status == "Critical",
         },
         "smoke": {
             "title": "Smoke",
@@ -728,6 +729,17 @@ def get_page_index_by_name(page_name):
     return 0
 
 
+def get_priority_critical_page_name(page_data):
+    if page_data["smoke"]["critical"]:
+        return "smoke"
+
+    for page in DISPLAY_PAGES:
+        if page_data[page["name"]]["critical"]:
+            return page["name"]
+
+    return None
+
+
 # ============================================================
 # Main
 # ============================================================
@@ -831,11 +843,7 @@ try:
 
             page_data = build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state)
 
-            current_critical_page_name = None
-            for page in DISPLAY_PAGES:
-                if page_data[page["name"]]["critical"]:
-                    current_critical_page_name = page["name"]
-                    break
+            current_critical_page_name = get_priority_critical_page_name(page_data)
 
             force_render = False
             critical_transition = False
