@@ -3,12 +3,16 @@
 import serial
 import time
 
-
 class DisplayManager:
     PAGE_TEMPERATURE = 0
     PAGE_HUMIDITY = 1
     PAGE_SMOKE = 2
-    
+    PAGE_PM1_0 = 3
+    PAGE_PM2_5 = 4
+    PAGE_PM4_0 = 5
+    PAGE_PM10 = 6
+    PAGE_VOC = 7
+    PAGE_NOX = 8
 
     EVENT_TOUCH = 0x65
     EVENT_RELEASE = 0x00
@@ -183,7 +187,7 @@ class DisplayManager:
         if event.get("type") != "touch":
             return None
 
-        if event.get("event") != "release":
+        if event.get("event") != "press":
             return None
 
         component_id = event.get("component_id")
@@ -228,6 +232,72 @@ class DisplayManager:
             title="Temperature",
             value=value,
             unit="C",
+            status=status,
+            trend=trend,
+            other=other,
+        )
+
+    def show_pm1_0_page(self, value, status="", trend="", other=""):
+        self.goto_page(self.PAGE_PM1_0)
+        self.update_page_content(
+            title="PM1.0",
+            value=value,
+            unit="ug/m3",
+            status=status,
+            trend=trend,
+            other=other,
+        )
+
+    def show_pm2_5_page(self, value, status="", trend="", other=""):
+        self.goto_page(self.PAGE_PM2_5)
+        self.update_page_content(
+            title="PM2.5",
+            value=value,
+            unit="ug/m3",
+            status=status,
+            trend=trend,
+            other=other,
+        )
+
+    def show_pm4_0_page(self, value, status="", trend="", other=""):
+        self.goto_page(self.PAGE_PM4_0)
+        self.update_page_content(
+            title="PM4.0",
+            value=value,
+            unit="ug/m3",
+            status=status,
+            trend=trend,
+            other=other,
+        )
+
+    def show_pm10_page(self, value, status="", trend="", other=""):
+        self.goto_page(self.PAGE_PM10)
+        self.update_page_content(
+            title="PM10",
+            value=value,
+            unit="ug/m3",
+            status=status,
+            trend=trend,
+            other=other,
+        )
+
+    def show_voc_page(self, value, status="", trend="", other=""):
+        self.goto_page(self.PAGE_VOC)
+        self.update_page_content(
+            title="VOC",
+            value=value,
+            unit="index",
+            status=status,
+            trend=trend,
+            other=other,
+        )
+
+    def show_nox_page(self, value, status="", trend="", other=""):
+        self.goto_page(self.PAGE_NOX)
+        self.update_page_content(
+            title="NOX",
+            value=value,
+            unit="index",
             status=status,
             trend=trend,
             other=other,

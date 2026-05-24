@@ -42,9 +42,8 @@ DISPLAY_PORT = "/dev/ttyAMA0"
 DISPLAY_BAUDRATE = 9600
 DISPLAY_AUTO_PAGE_SECONDS = 5
 
-# Set these after confirming your actual Nextion component IDs
-DISPLAY_BACK_COMPONENT_ID = 1
-DISPLAY_NEXT_COMPONENT_ID = 2
+DISPLAY_BACK_COMPONENT_ID = 2
+DISPLAY_NEXT_COMPONENT_ID = 1
 
 long_window = []
 short_window = []
@@ -428,9 +427,15 @@ def handle_environment_event(event_type):
 # ============================================================
 
 DISPLAY_PAGES = [
+    {"name": "temperature", "page_id": DisplayManager.PAGE_TEMPERATURE},
     {"name": "humidity", "page_id": DisplayManager.PAGE_HUMIDITY},
     {"name": "smoke", "page_id": DisplayManager.PAGE_SMOKE},
-    {"name": "temperature", "page_id": DisplayManager.PAGE_TEMPERATURE},
+    {"name": "pm1_0", "page_id": DisplayManager.PAGE_PM1_0},
+    {"name": "pm2_5", "page_id": DisplayManager.PAGE_PM2_5},
+    {"name": "pm4_0", "page_id": DisplayManager.PAGE_PM4_0},
+    {"name": "pm10", "page_id": DisplayManager.PAGE_PM10},
+    {"name": "voc", "page_id": DisplayManager.PAGE_VOC},
+    {"name": "nox", "page_id": DisplayManager.PAGE_NOX},
 ]
 
 
@@ -464,6 +469,36 @@ def classify_smoke(smoke_state):
     return "Error", ""
 
 
+def classify_pm_value(value):
+    if value is None:
+        return "Error", ""
+    if value >= 35:
+        return "Critical", ""
+    if value >= 12:
+        return "Elevated", ""
+    return "Good", ""
+
+
+def classify_voc_value(value):
+    if value is None:
+        return "Error", ""
+    if value >= 300:
+        return "Critical", ""
+    if value >= 150:
+        return "Elevated", ""
+    return "Good", ""
+
+
+def classify_nox_value(value):
+    if value is None:
+        return "Error", ""
+    if value >= 300:
+        return "Critical", ""
+    if value >= 150:
+        return "Elevated", ""
+    return "Good", ""
+
+
 def get_trend_text(delta_value, threshold=0.2):
     if delta_value is None:
         return ""
@@ -485,8 +520,12 @@ def build_display_page_data(measurement, short_delta, smoke_state):
     temperature_status, temperature_other = classify_temperature(measurement["sen55_temperature"])
     smoke_status, smoke_other = classify_smoke(smoke_state)
 
-    humidity_trend = get_trend_text(short_delta["sen55_humidity"])
-    temperature_trend = get_trend_text(short_delta["sen55_temperature"])
+    pm1_status, pm1_other = classify_pm_value(measurement["pm1_0"])
+    pm2_5_status, pm2_5_other = classify_pm_value(measurement["pm2_5"])
+    pm4_0_status, pm4_0_other = classify_pm_value(measurement["pm4_0"])
+    pm10_status, pm10_other = classify_pm_value(measurement["pm10"])
+    voc_status, voc_other = classify_voc_value(measurement["voc"])
+    nox_status, nox_other = classify_nox_value(measurement["nox"])
 
     page_data = {
         "humidity": {
@@ -494,7 +533,7 @@ def build_display_page_data(measurement, short_delta, smoke_state):
             "value": format_display_value(measurement["sen55_humidity"]),
             "unit": "%",
             "status": humidity_status,
-            "trend": humidity_trend,
+            "trend": get_trend_text(short_delta["sen55_humidity"]),
             "other": humidity_other,
             "critical": humidity_status == "Critical",
         },
@@ -512,9 +551,63 @@ def build_display_page_data(measurement, short_delta, smoke_state):
             "value": format_display_value(measurement["sen55_temperature"]),
             "unit": "C",
             "status": temperature_status,
-            "trend": temperature_trend,
+            "trend": get_trend_text(short_delta["sen55_temperature"]),
             "other": temperature_other,
             "critical": temperature_status == "Critical",
+        },
+        "pm1_0": {
+            "title": "PM1.0",
+            "value": format_display_value(measurement["pm1_0"]),
+            "unit": "ug/m3",
+            "status": pm1_status,
+            "trend": get_trend_text(short_delta["pm1_0"]),
+            "other": pm1_other,
+            "critical": pm1_status == "Critical",
+        },
+        "pm2_5": {
+            "title": "PM2.5",
+            "value": format_display_value(measurement["pm2_5"]),
+            "unit": "ug/m3",
+            "status": pm2_5_status,
+            "trend": get_trend_text(short_delta["pm2_5"]),
+            "other": pm2_5_other,
+            "critical": pm2_5_status == "Critical",
+        },
+        "pm4_0": {
+            "title": "PM4.0",
+            "value": format_display_value(measurement["pm4_0"]),
+            "unit": "ug/m3",
+            "status": pm4_0_status,
+            "trend": get_trend_text(short_delta["pm4_0"]),
+            "other": pm4_0_other,
+            "critical": pm4_0_status == "Critical",
+        },
+        "pm10": {
+            "title": "PM10",
+            "value": format_display_value(measurement["pm10"]),
+            "unit": "ug/m3",
+            "status": pm10_status,
+            "trend": get_trend_text(short_delta["pm10"]),
+            "other": pm10_other,
+            "critical": pm10_status == "Critical",
+        },
+        "voc": {
+            "title": "VOC",
+            "value": format_display_value(measurement["voc"]),
+            "unit": "index",
+            "status": voc_status,
+            "trend": get_trend_text(short_delta["voc"]),
+            "other": voc_other,
+            "critical": voc_status == "Critical",
+        },
+        "nox": {
+            "title": "NOX",
+            "value": format_display_value(measurement["nox"]),
+            "unit": "index",
+            "status": nox_status,
+            "trend": get_trend_text(short_delta["nox"]),
+            "other": nox_other,
+            "critical": nox_status == "Critical",
         },
     }
 
@@ -525,26 +618,23 @@ def render_display_page(page_name, page_data, critical_transition=False):
     content = page_data[page_name]
 
     if page_name == "humidity":
-        display.show_humidity_page(
-            value=content["value"],
-            status=content["status"],
-            trend=content["trend"],
-            other=content["other"]
-        )
+        display.show_humidity_page(content["value"], content["status"], content["trend"], content["other"])
     elif page_name == "smoke":
-        display.show_smoke_page(
-            value=content["value"],
-            status=content["status"],
-            trend=content["trend"],
-            other=content["other"]
-        )
+        display.show_smoke_page(content["value"], content["status"], content["trend"], content["other"])
     elif page_name == "temperature":
-        display.show_temperature_page(
-            value=content["value"],
-            status=content["status"],
-            trend=content["trend"],
-            other=content["other"]
-        )
+        display.show_temperature_page(content["value"], content["status"], content["trend"], content["other"])
+    elif page_name == "pm1_0":
+        display.show_pm1_0_page(content["value"], content["status"], content["trend"], content["other"])
+    elif page_name == "pm2_5":
+        display.show_pm2_5_page(content["value"], content["status"], content["trend"], content["other"])
+    elif page_name == "pm4_0":
+        display.show_pm4_0_page(content["value"], content["status"], content["trend"], content["other"])
+    elif page_name == "pm10":
+        display.show_pm10_page(content["value"], content["status"], content["trend"], content["other"])
+    elif page_name == "voc":
+        display.show_voc_page(content["value"], content["status"], content["trend"], content["other"])
+    elif page_name == "nox":
+        display.show_nox_page(content["value"], content["status"], content["trend"], content["other"])
 
     if content["critical"]:
         if critical_transition:
