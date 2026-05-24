@@ -6,13 +6,14 @@ import time
 class DisplayManager:
     PAGE_TEMPERATURE = 0
     PAGE_HUMIDITY = 1
-    PAGE_SMOKE = 2
+    PAGE_CO2 = 2
     PAGE_PM1_0 = 3
     PAGE_PM2_5 = 4
     PAGE_PM4_0 = 5
     PAGE_PM10 = 6
     PAGE_VOC = 7
     PAGE_NOX = 8
+    PAGE_SMOKE = 9
 
     EVENT_TOUCH = 0x65
     EVENT_RELEASE = 0x00
@@ -92,6 +93,14 @@ class DisplayManager:
         self.set_text("status", status)
         self.set_text("trend", trend)
         self.set_text("other", other)
+    
+    def clear_page_content(self):
+        self.set_text("title", "")
+        self.set_text("value", "")
+        self.set_text("unit", "")
+        self.set_text("status", "")
+        self.set_text("trend", "")
+        self.set_text("other", "")
 
     def apply_normal_theme(self):
         self.set_page_background_color(self.COLOR_BLACK)
@@ -204,6 +213,17 @@ class DisplayManager:
     # Convenience render helpers
     # ============================================================
 
+    def show_temperature_page(self, value, status="", trend="", other=""):
+        self.goto_page(self.PAGE_TEMPERATURE)
+        self.update_page_content(
+            title="Temperature",
+            value=value,
+            unit="C",
+            status=status,
+            trend=trend,
+            other=other,
+        )
+        
     def show_humidity_page(self, value, status="", trend="", other=""):
         self.goto_page(self.PAGE_HUMIDITY)
         self.update_page_content(
@@ -215,23 +235,24 @@ class DisplayManager:
             other=other,
         )
 
+    def show_co2_page(self, value, status="", trend="", other=""):
+        self.goto_page(self.PAGE_CO2)
+        self.clear_page_content()
+        self.update_page_content(
+            title="CO2",
+            value=value,
+            unit="ppm",
+            status=status,
+            trend=trend,
+            other=other,
+        )
+    
     def show_smoke_page(self, value, status="", trend="", other=""):
         self.goto_page(self.PAGE_SMOKE)
         self.update_page_content(
             title="Smoke",
             value=value,
             unit="",
-            status=status,
-            trend=trend,
-            other=other,
-        )
-
-    def show_temperature_page(self, value, status="", trend="", other=""):
-        self.goto_page(self.PAGE_TEMPERATURE)
-        self.update_page_content(
-            title="Temperature",
-            value=value,
-            unit="C",
             status=status,
             trend=trend,
             other=other,
