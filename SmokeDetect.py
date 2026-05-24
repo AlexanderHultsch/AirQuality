@@ -11,6 +11,7 @@ from smbus2 import SMBus, i2c_msg
 from datetime import datetime
 import csv
 import os
+from display_manager import DisplayManager
 
 # ============================================================
 # Configuration
@@ -23,7 +24,7 @@ PRE_TRIGGER_LEN = int(PRE_TRIGGER_SECONDS / REFRESH_RATE)
 DEBUG_TRIGGER_ENABLED = True
 DEBUG_TRIGGER_AFTER_LOOPS = 2
 
-MAX_LOG_FILE_SIZE_MB = 5 # Max size of Logs
+MAX_LOG_FILE_SIZE_MB = 5  # Max size of Logs
 LOG_TRIM_TARGET_RATIO = 0.75  # after trimming, keep about 75% of max size
 
 LONG_WINDOW_SECONDS = 5 * 60
@@ -37,10 +38,19 @@ BUS_ID = 1
 SEN55_ADDR = 0x69
 SCD41_ADDR = 0x62  # Placeholder address for future integration
 
+DISPLAY_PORT = "/dev/ttyAMA0"
+DISPLAY_BAUDRATE = 9600
+DISPLAY_AUTO_PAGE_SECONDS = 5
+
+# Set these after confirming your actual Nextion component IDs
+DISPLAY_BACK_COMPONENT_ID = 1
+DISPLAY_NEXT_COMPONENT_ID = 2
+
 long_window = []
 short_window = []
 
 bus = SMBus(BUS_ID)
+display = DisplayManager(port=DISPLAY_PORT, baudrate=DISPLAY_BAUDRATE, timeout=0.1)
 
 
 # ============================================================
@@ -275,9 +285,8 @@ def trim_csv_if_oversize(file_name):
         kept_size_estimate += row_size
 
     kept_rows.reverse()
-    
-    print(f"Log cleanup: {file_name} exceeded {MAX_LOG_FILE_SIZE_MB} MB, old entries removed.")
 
+    print(f"Log cleanup: {file_name} exceeded {MAX_LOG_FILE_SIZE_MB} MB, old entries removed.")
 
     with open(file_name, "w", newline="") as f:
         writer = csv.writer(f)
@@ -404,6 +413,7 @@ def log_smoke_event(timestamp, smoke_state, smoke_score, latest_measurement, sho
 
     log_event(file_name, header, row)
 
+
 # ============================================================
 # Event Handling
 # ============================================================
@@ -411,6 +421,145 @@ def log_smoke_event(timestamp, smoke_state, smoke_score, latest_measurement, sho
 def handle_environment_event(event_type):
     if event_type == "smoke":
         print("Fenster schließt")
+
+
+# ============================================================
+# Display Helpers
+# ============================================================
+
+DISPLAY_PAGES = [
+    {"name": "humidity", "page_id": DisplayManager.PAGE_HUMIDITY},
+    {"name": "smoke", "page_id": DisplayManager.PAGE_SMOKE},
+    {"name": "temperature", "page_id": DisplayManager.PAGE_TEMPERATURE},
+]
+
+
+def classify_humidity(value):
+    if value is None:
+        return "Error", ""
+    if value < 30 or value > 70:
+        return "Critical", ""
+    if value < 40 or value > 60:
+        return "Elevated", ""
+    return "Good", ""
+
+
+def classify_temperature(value):
+    if value is None:
+        return "Error", ""
+    if value >= 30 or value <= 15:
+        return "Critical", ""
+    if value >= 27 or value <= 18:
+        return "Elevated", ""
+    return "Good", ""
+
+
+def classify_smoke(smoke_state):
+    if smoke_state == "SMOKE":
+        return "Critical", ""
+    if smoke_state == "SUSPICIOUS":
+        return "Elevated", ""
+    if smoke_state == "CLEAR":
+        return "Good", ""
+    return "Error", ""
+
+
+def get_trend_text(delta_value, threshold=0.2):
+    if delta_value is None:
+        return ""
+    if delta_value > threshold:
+        return "Rising"
+    if delta_value < -threshold:
+        return "Falling"
+    return "Stable"
+
+
+def format_display_value(value):
+    if value is None:
+        return "Error"
+    return str(value)
+
+
+def build_display_page_data(measurement, short_delta, smoke_state):
+    humidity_status, humidity_other = classify_humidity(measurement["sen55_humidity"])
+    temperature_status, temperature_other = classify_temperature(measurement["sen55_temperature"])
+    smoke_status, smoke_other = classify_smoke(smoke_state)
+
+    humidity_trend = get_trend_text(short_delta["sen55_humidity"])
+    temperature_trend = get_trend_text(short_delta["sen55_temperature"])
+
+    page_data = {
+        "humidity": {
+            "title": "Humidity",
+            "value": format_display_value(measurement["sen55_humidity"]),
+            "unit": "%",
+            "status": humidity_status,
+            "trend": humidity_trend,
+            "other": humidity_other,
+            "critical": humidity_status == "Critical",
+        },
+        "smoke": {
+            "title": "Smoke",
+            "value": smoke_state if smoke_state else "Error",
+            "unit": "",
+            "status": smoke_status,
+            "trend": "",
+            "other": smoke_other,
+            "critical": smoke_status == "Critical",
+        },
+        "temperature": {
+            "title": "Temperature",
+            "value": format_display_value(measurement["sen55_temperature"]),
+            "unit": "C",
+            "status": temperature_status,
+            "trend": temperature_trend,
+            "other": temperature_other,
+            "critical": temperature_status == "Critical",
+        },
+    }
+
+    return page_data
+
+
+def render_display_page(page_name, page_data, critical_transition=False):
+    content = page_data[page_name]
+
+    if page_name == "humidity":
+        display.show_humidity_page(
+            value=content["value"],
+            status=content["status"],
+            trend=content["trend"],
+            other=content["other"]
+        )
+    elif page_name == "smoke":
+        display.show_smoke_page(
+            value=content["value"],
+            status=content["status"],
+            trend=content["trend"],
+            other=content["other"]
+        )
+    elif page_name == "temperature":
+        display.show_temperature_page(
+            value=content["value"],
+            status=content["status"],
+            trend=content["trend"],
+            other=content["other"]
+        )
+
+    if content["critical"]:
+        if critical_transition:
+            display.flash_critical_alert(step_delay=0.2)
+        else:
+            display.apply_critical_theme()
+    else:
+        display.apply_normal_theme()
+
+
+def get_page_index_by_name(page_name):
+    for index, page in enumerate(DISPLAY_PAGES):
+        if page["name"] == page_name:
+            return index
+    return 0
 
 
 # ============================================================
@@ -439,68 +588,127 @@ analysis_fields = [
     "scd41_humidity"
 ]
 
-while True:
-    smoke_state = "CLEAR"
-    smoke_score = 0
-    smoke_criteria = {}
+current_page_index = 0
+last_page_change_time = time.time()
+last_critical_page_name = None
+last_rendered_page_name = None
 
-    measurement = build_measurement()
+try:
+    while True:
+        smoke_state = "CLEAR"
+        smoke_score = 0
+        smoke_criteria = {}
 
-    if measurement is None:
-        print("Noch keine fertigen Daten")
+        touch_event = display.read_touch_event()
+        navigation_action = display.interpret_navigation_event(
+            touch_event,
+            DISPLAY_BACK_COMPONENT_ID,
+            DISPLAY_NEXT_COMPONENT_ID
+        )
+
+        measurement = build_measurement()
+
+        if measurement is None:
+            print("Noch keine fertigen Daten")
+            time.sleep(REFRESH_RATE)
+            continue
+
+        debug_loop_count += 1
+
+        update_window(long_window, measurement, LONG_MAX_LIST_LEN)
+        update_window(short_window, measurement, SHORT_MAX_LIST_LEN)
+
+        print(str(measurement))
+
+        long_avg, long_delta = calculate_avg_and_delta(long_window, analysis_fields)
+        short_avg, short_delta = calculate_avg_and_delta(short_window, analysis_fields)
+
+        if long_avg is not None and short_avg is not None:
+            if DEBUG_TRIGGER_ENABLED and debug_loop_count >= DEBUG_TRIGGER_AFTER_LOOPS:
+                smoke_state = "SMOKE"
+                smoke_score = 999
+                smoke_criteria = {
+                    "pm2_5_abs": True,
+                    "pm2_5_long_delta": True,
+                    "pm1_0_long_delta": True,
+                    "pm2_5_spike": True,
+                    "pm1_0_spike": True,
+                    "pm2_5_short_vs_long": True,
+                    "pm_ratio": True,
+                    "voc_spike": False
+                }
+                DEBUG_TRIGGER_ENABLED = False
+            else:
+                smoke_state, smoke_score, smoke_criteria = analyze_smoke(
+                    measurement, long_avg, short_avg, long_delta, short_delta
+                )
+
+            print("smoke_state:", smoke_state)
+            print("smoke_score:", smoke_score)
+
+            if last_smoke_state != "SMOKE" and smoke_state == "SMOKE":
+                log_pre_smoke_window(long_window, smoke_state, smoke_score)
+                handle_environment_event("smoke")
+
+            if smoke_state == "SMOKE":
+                log_smoke_event(
+                    measurement["timestamp"],
+                    smoke_state,
+                    smoke_score,
+                    measurement,
+                    short_avg,
+                    long_avg,
+                    short_delta,
+                    long_delta,
+                    smoke_criteria
+                )
+
+            page_data = build_display_page_data(measurement, short_delta, smoke_state)
+
+            current_critical_page_name = None
+            for page in DISPLAY_PAGES:
+                if page_data[page["name"]]["critical"]:
+                    current_critical_page_name = page["name"]
+                    break
+
+            force_render = False
+            critical_transition = False
+
+            if navigation_action == "back":
+                current_page_index = (current_page_index - 1) % len(DISPLAY_PAGES)
+                last_page_change_time = time.time()
+                force_render = True
+
+            elif navigation_action == "next":
+                current_page_index = (current_page_index + 1) % len(DISPLAY_PAGES)
+                last_page_change_time = time.time()
+                force_render = True
+
+            elif current_critical_page_name is not None and current_critical_page_name != last_critical_page_name:
+                current_page_index = get_page_index_by_name(current_critical_page_name)
+                last_page_change_time = time.time()
+                force_render = True
+                critical_transition = True
+
+            elif current_critical_page_name is None and (time.time() - last_page_change_time) >= DISPLAY_AUTO_PAGE_SECONDS:
+                current_page_index = (current_page_index + 1) % len(DISPLAY_PAGES)
+                last_page_change_time = time.time()
+                force_render = True
+
+            page_name = DISPLAY_PAGES[current_page_index]["name"]
+
+            if force_render or page_name != last_rendered_page_name:
+                render_display_page(page_name, page_data, critical_transition=critical_transition)
+                last_rendered_page_name = page_name
+
+            last_critical_page_name = current_critical_page_name
+            last_smoke_state = smoke_state
+
         time.sleep(REFRESH_RATE)
-        continue
 
-    debug_loop_count += 1
+except KeyboardInterrupt:
+    print("Programm beendet durch Benutzer.")
 
-    update_window(long_window, measurement, LONG_MAX_LIST_LEN)
-    update_window(short_window, measurement, SHORT_MAX_LIST_LEN)
-
-    print(str(measurement))
-
-    long_avg, long_delta = calculate_avg_and_delta(long_window, analysis_fields)
-    short_avg, short_delta = calculate_avg_and_delta(short_window, analysis_fields)
-
-    if long_avg is not None and short_avg is not None:
-        if DEBUG_TRIGGER_ENABLED and debug_loop_count >= DEBUG_TRIGGER_AFTER_LOOPS:
-            smoke_state = "SMOKE"
-            smoke_score = 999
-            smoke_criteria = {
-                "pm2_5_abs": True,
-                "pm2_5_long_delta": True,
-                "pm1_0_long_delta": True,
-                "pm2_5_spike": True,
-                "pm1_0_spike": True,
-                "pm2_5_short_vs_long": True,
-                "pm_ratio": True,
-                "voc_spike": False
-            }
-            DEBUG_TRIGGER_ENABLED = False
-        else:
-            smoke_state, smoke_score, smoke_criteria = analyze_smoke(
-                measurement, long_avg, short_avg, long_delta, short_delta
-            )
-
-        print("smoke_state:", smoke_state)
-        print("smoke_score:", smoke_score)
-
-        if last_smoke_state != "SMOKE" and smoke_state == "SMOKE":
-            log_pre_smoke_window(long_window, smoke_state, smoke_score)
-            handle_environment_event("smoke")
-
-        if smoke_state == "SMOKE":
-            log_smoke_event(
-                measurement["timestamp"],
-                smoke_state,
-                smoke_score,
-                measurement,
-                short_avg,
-                long_avg,
-                short_delta,
-                long_delta,
-                smoke_criteria
-            )
-
-        last_smoke_state = smoke_state
-
-    time.sleep(REFRESH_RATE)
+finally:
+    display.close()
+    bus.close()
