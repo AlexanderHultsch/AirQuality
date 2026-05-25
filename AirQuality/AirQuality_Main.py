@@ -13,6 +13,14 @@ from modules.sensor_reader import build_measurement
 from modules.analysis import analyze_smoke, build_display_page_data
 from modules.logging_utils import log_pre_smoke_window, log_smoke_event
 from modules.notifications import process_push_notifications
+from test_script import (
+    TEST_MODE,
+    ACTIVE_TEST_SCENARIO,
+    TEST_ENABLE_DISPLAY,
+    TEST_ENABLE_PUSHOVER,
+    TEST_ENABLE_LOGGING,
+    get_test_measurement,
+)
 
 # ============================================================
 # Configuration
@@ -21,9 +29,6 @@ from modules.notifications import process_push_notifications
 REFRESH_RATE = 1  # seconds
 PRE_TRIGGER_SECONDS = 30
 PRE_TRIGGER_LEN = int(PRE_TRIGGER_SECONDS / REFRESH_RATE)
-
-DEBUG_TRIGGER_ENABLED = True
-DEBUG_TRIGGER_AFTER_LOOPS = 2
 
 MAX_LOG_FILE_SIZE_MB = 5  # Max size of Logs
 LOG_TRIM_TARGET_RATIO = 0.75  # after trimming, keep about 75% of max size
@@ -46,7 +51,7 @@ DISPLAY_AUTO_PAGE_SECONDS = 5
 DISPLAY_BACK_COMPONENT_ID = 2
 DISPLAY_NEXT_COMPONENT_ID = 1
 
-PUSHOVER_ENABLED = True
+PUSHOVER_ENABLED = TEST_ENABLE_PUSHOVER
 PUSHOVER_KEYS_FILE = "pushover_keys.txt"
 PUSHOVER_API_URL = "https://api.pushover.net/1/messages.json"
 PUSHOVER_TIMEOUT_SECONDS = 10
@@ -179,6 +184,16 @@ def get_priority_critical_page_name(page_data):
 
 
 # ============================================================
+# Measurement Source Helper
+# ============================================================
+
+def get_measurement(loop_count):
+    if TEST_MODE:
+        return get_test_measurement(loop_count, ACTIVE_TEST_SCENARIO)
+    return build_measurement(bus, SEN55_ADDR)
+
+
+# ============================================================
 # Main
 # ============================================================
 
@@ -188,7 +203,7 @@ print("Messung gestartet...")
 time.sleep(1)
 
 last_smoke_state = "CLEAR"
-debug_loop_count = 0
+loop_count = 0
 
 analysis_fields = [
     "pm1_0",
@@ -235,14 +250,14 @@ try:
             DISPLAY_NEXT_COMPONENT_ID
         )
 
-        measurement = build_measurement(bus, SEN55_ADDR)
+        measurement = get_measurement(loop_count)
 
         if measurement is None:
             print("Noch keine fertigen Daten")
             time.sleep(REFRESH_RATE)
             continue
 
-        debug_loop_count += 1
+        loop_count += 1
 
         update_window(long_window, measurement, LONG_MAX_LIST_LEN)
         update_window(short_window, measurement, SHORT_MAX_LIST_LEN)
@@ -253,40 +268,26 @@ try:
         short_avg, short_delta = calculate_avg_and_delta(short_window, analysis_fields)
 
         if long_avg is not None and short_avg is not None:
-            if DEBUG_TRIGGER_ENABLED and debug_loop_count >= DEBUG_TRIGGER_AFTER_LOOPS:
-                smoke_state = "SMOKE"
-                smoke_score = 999
-                smoke_criteria = {
-                    "pm2_5_abs": True,
-                    "pm2_5_long_delta": True,
-                    "pm1_0_long_delta": True,
-                    "pm2_5_spike": True,
-                    "pm1_0_spike": True,
-                    "pm2_5_short_vs_long": True,
-                    "pm_ratio": True,
-                    "voc_spike": False
-                }
-                DEBUG_TRIGGER_ENABLED = False
-            else:
-                smoke_state, smoke_score, smoke_criteria = analyze_smoke(
-                    measurement, long_avg, short_avg, long_delta, short_delta
-                )
+            smoke_state, smoke_score, smoke_criteria = analyze_smoke(
+                measurement, long_avg, short_avg, long_delta, short_delta
+            )
 
             print("smoke_state:", smoke_state)
             print("smoke_score:", smoke_score)
 
             if last_smoke_state != "SMOKE" and smoke_state == "SMOKE":
-                log_pre_smoke_window(
-                    long_window,
-                    smoke_state,
-                    smoke_score,
-                    PRE_TRIGGER_LEN,
-                    MAX_LOG_FILE_SIZE_MB,
-                    LOG_TRIM_TARGET_RATIO
-                )
+                if TEST_ENABLE_LOGGING:
+                    log_pre_smoke_window(
+                        long_window,
+                        smoke_state,
+                        smoke_score,
+                        PRE_TRIGGER_LEN,
+                        MAX_LOG_FILE_SIZE_MB,
+                        LOG_TRIM_TARGET_RATIO
+                    )
                 handle_environment_event("smoke")
 
-            if smoke_state == "SMOKE":
+            if smoke_state == "SMOKE" and TEST_ENABLE_LOGGING:
                 log_smoke_event(
                     measurement["timestamp"],
                     smoke_state,
@@ -342,7 +343,7 @@ try:
 
             page_name = DISPLAY_PAGES[current_page_index]["name"]
 
-            if force_render or page_name != last_rendered_page_name:
+            if (force_render or page_name != last_rendered_page_name) and TEST_ENABLE_DISPLAY:
                 render_display_page(page_name, page_data, critical_transition=critical_transition)
                 last_rendered_page_name = page_name
 
