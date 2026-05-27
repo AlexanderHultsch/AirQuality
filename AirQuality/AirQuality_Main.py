@@ -51,12 +51,15 @@ DISPLAY_AUTO_PAGE_SECONDS = 5
 DISPLAY_BACK_COMPONENT_ID = 2
 DISPLAY_NEXT_COMPONENT_ID = 1
 
-PUSHOVER_ENABLED = TEST_ENABLE_PUSHOVER
 PUSHOVER_KEYS_FILE = "pushover_keys.txt"
 PUSHOVER_API_URL = "https://api.pushover.net/1/messages.json"
 PUSHOVER_TIMEOUT_SECONDS = 10
 PUSHOVER_SMOKE_PRIORITY = 1
 PUSHOVER_DEFAULT_PRIORITY = 0
+
+DISPLAY_ENABLED = True if not TEST_MODE else TEST_ENABLE_DISPLAY
+PUSHOVER_ENABLED = True if not TEST_MODE else TEST_ENABLE_PUSHOVER
+LOGGING_ENABLED = True if not TEST_MODE else TEST_ENABLE_LOGGING
 
 long_window = []
 short_window = []
@@ -276,7 +279,7 @@ try:
             print("smoke_score:", smoke_score)
 
             if last_smoke_state != "SMOKE" and smoke_state == "SMOKE":
-                if TEST_ENABLE_LOGGING:
+                if LOGGING_ENABLED:
                     log_pre_smoke_window(
                         long_window,
                         smoke_state,
@@ -287,7 +290,7 @@ try:
                     )
                 handle_environment_event("smoke")
 
-            if smoke_state == "SMOKE" and TEST_ENABLE_LOGGING:
+            if smoke_state == "SMOKE" and LOGGING_ENABLED:
                 log_smoke_event(
                     measurement["timestamp"],
                     smoke_state,
@@ -343,7 +346,7 @@ try:
 
             page_name = DISPLAY_PAGES[current_page_index]["name"]
 
-            if (force_render or page_name != last_rendered_page_name) and TEST_ENABLE_DISPLAY:
+            if (force_render or page_name != last_rendered_page_name) and DISPLAY_ENABLED:
                 render_display_page(page_name, page_data, critical_transition=critical_transition)
                 last_rendered_page_name = page_name
 

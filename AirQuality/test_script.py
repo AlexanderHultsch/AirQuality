@@ -5,7 +5,7 @@ ACTIVE_TEST_SCENARIO = "smoke_after_5_loops"
 
 TEST_ENABLE_DISPLAY = True
 TEST_ENABLE_PUSHOVER = True
-TEST_ENABLE_LOGGING = False
+TEST_ENABLE_LOGGING = True
 
 
 def _measurement(

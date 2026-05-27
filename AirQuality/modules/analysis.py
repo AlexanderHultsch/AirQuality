@@ -10,13 +10,13 @@ def analyze_smoke(latest_measurement, long_avg, short_avg, long_delta, short_del
     long_delta_pm1_0 = long_delta["pm1_0"]
     long_delta_pm2_5 = long_delta["pm2_5"]
 
-    if pm2_5 > 12:
+    if pm2_5 > 10:
         pm_ratio_value = pm1_0 / pm2_5
     else:
         pm_ratio_value = 0
 
     criteria = {
-        "pm2_5_abs": pm2_5 > 12 or pm1_0 > 10,
+        "pm2_5_abs": pm2_5 > 10 or pm1_0 > 8,
         "pm2_5_long_delta": long_delta_pm2_5 is not None and long_delta_pm2_5 > 3.0,
         "pm1_0_long_delta": long_delta_pm1_0 is not None and long_delta_pm1_0 > 3.0,
         "pm2_5_spike": long_avg_pm2_5 is not None and pm2_5 > long_avg_pm2_5 * 1.45,
@@ -26,7 +26,7 @@ def analyze_smoke(latest_measurement, long_avg, short_avg, long_delta, short_del
             long_avg_pm2_5 is not None and
             short_avg_pm2_5 > long_avg_pm2_5 * 1.20
         ),
-        "pm_ratio": pm2_5 > 12 and pm_ratio_value > 0.92,
+        "pm_ratio": pm2_5 > 10 and pm_ratio_value > 0.88,
         "voc_spike": False
     }
 
@@ -54,6 +54,8 @@ def analyze_smoke(latest_measurement, long_avg, short_avg, long_delta, short_del
     elif strong_signals >= 1:
         smoke_state = "SUSPICIOUS"
     elif trend_signals >= 1 and support_signals >= 1:
+        smoke_state = "SUSPICIOUS"
+    elif criteria["pm2_5_abs"] and trend_signals >= 1:
         smoke_state = "SUSPICIOUS"
     else:
         smoke_state = "CLEAR"
