@@ -9,9 +9,14 @@
 import time
 from smbus2 import SMBus, i2c_msg
 from display_manager import DisplayManager
-from modules.sensor_reader import build_measurement
-from modules.analysis import analyze_smoke, build_display_page_data
-from modules.logging_utils import log_pre_smoke_window, log_smoke_event
+from modules.sensor_reader import build_measurement, start_scd41_periodic_measurement
+from modules.analysis import analyze_smoke, analyze_CO2, build_display_page_data
+from modules.logging_utils import (
+    log_pre_smoke_window,
+    log_smoke_event,
+    log_pre_co2_window,
+    log_co2_event,
+)
 from modules.notifications import process_push_notifications
 from test_script import (
     TEST_MODE,
@@ -42,7 +47,7 @@ SHORT_MAX_LIST_LEN = int(SHORT_WINDOW_SECONDS / REFRESH_RATE)
 BUS_ID = 1
 
 SEN55_ADDR = 0x69
-SCD41_ADDR = 0x62  # Placeholder address for future integration
+SCD41_ADDR = 0x62
 
 DISPLAY_PORT = "/dev/ttyAMA0"
 DISPLAY_BAUDRATE = 9600
@@ -115,6 +120,11 @@ def calculate_avg_and_delta(window_list, fields):
 def handle_environment_event(event_type):
     if event_type == "smoke":
         print("Fenster schließt")
+        
+    elif event_type == "co2_ventilate":
+        print("Fenster Öffnen Empfohlen")
+    elif event_type == "co2_critical":
+        print("Fenster öffnen!")
 
 
 # ============================================================
@@ -193,7 +203,7 @@ def get_priority_critical_page_name(page_data):
 def get_measurement(loop_count):
     if TEST_MODE:
         return get_test_measurement(loop_count, ACTIVE_TEST_SCENARIO)
-    return build_measurement(bus, SEN55_ADDR)
+    return build_measurement(bus, SEN55_ADDR, SCD41_ADDR)
 
 
 # ============================================================
@@ -202,10 +212,15 @@ def get_measurement(loop_count):
 
 # Start SEN55 measurement: 0x0021
 bus.i2c_rdwr(i2c_msg.write(SEN55_ADDR, [0x00, 0x21]))
-print("Messung gestartet...")
+print("SEN55 Messung gestartet...")
+
+if not TEST_MODE:
+    start_scd41_periodic_measurement(bus, SCD41_ADDR)
+
 time.sleep(1)
 
 last_smoke_state = "CLEAR"
+last_co2_state = "GOOD"
 loop_count = 0
 
 analysis_fields = [
@@ -246,6 +261,10 @@ try:
         smoke_score = 0
         smoke_criteria = {}
 
+        co2_state = "GOOD"
+        co2_score = 0
+        co2_criteria = {}
+
         touch_event = display.read_touch_event()
         navigation_action = display.interpret_navigation_event(
             touch_event,
@@ -275,8 +294,9 @@ try:
                 measurement, long_avg, short_avg, long_delta, short_delta
             )
 
-            print("smoke_state:", smoke_state)
-            print("smoke_score:", smoke_score)
+            co2_state, co2_score, co2_criteria = analyze_CO2(
+                measurement, long_avg, short_avg, long_delta, short_delta
+            )
 
             if last_smoke_state != "SMOKE" and smoke_state == "SMOKE":
                 if LOGGING_ENABLED:
@@ -305,7 +325,49 @@ try:
                     LOG_TRIM_TARGET_RATIO
                 )
 
-            page_data = build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state)
+            co2_issue_started = (
+                last_co2_state not in ["VENTILATE", "CRITICAL"] and
+                co2_state in ["VENTILATE", "CRITICAL"]
+            )
+
+            if co2_issue_started and LOGGING_ENABLED:
+                log_pre_co2_window(
+                    long_window,
+                    co2_state,
+                    co2_score,
+                    PRE_TRIGGER_LEN,
+                    MAX_LOG_FILE_SIZE_MB,
+                    LOG_TRIM_TARGET_RATIO
+                )
+                
+            if co2_state in ["VENTILATE", "CRITICAL"] and LOGGING_ENABLED:
+                log_co2_event(
+                    measurement["timestamp"],
+                    co2_state,
+                    co2_score,
+                    measurement,
+                    short_avg,
+                    long_avg,
+                    short_delta,
+                    long_delta,
+                    co2_criteria,
+                    MAX_LOG_FILE_SIZE_MB,
+                    LOG_TRIM_TARGET_RATIO
+                )
+
+            if last_co2_state != "VENTILATE" and co2_state == "VENTILATE":
+                handle_environment_event("co2_ventilate")
+
+            if last_co2_state != "CRITICAL" and co2_state == "CRITICAL":
+                handle_environment_event("co2_critical")
+
+            page_data = build_display_page_data(
+                measurement,
+                long_avg,
+                smoke_state,
+                last_smoke_state,
+                co2_state,
+            )
 
             process_push_notifications(
                 page_data,
@@ -352,6 +414,7 @@ try:
 
             last_critical_page_name = current_critical_page_name
             last_smoke_state = smoke_state
+            last_co2_state = co2_state
 
         time.sleep(REFRESH_RATE)
 

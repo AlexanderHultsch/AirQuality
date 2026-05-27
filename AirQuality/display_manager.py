@@ -1,5 +1,11 @@
 # display_manager.py
 
+# Cable Setup -------------------------------------------------
+# PIN1_5V_Red_____Pin04
+# PIN2_GND_Black__Pin09
+# PIN4_RX_Yellow__Pin08
+# PIN3_TX_Blue____Pin10
+
 import serial
 import time
 

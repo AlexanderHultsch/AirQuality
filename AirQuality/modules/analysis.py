@@ -66,10 +66,58 @@ def analyze_smoke(latest_measurement, long_avg, short_avg, long_delta, short_del
 
 
 def analyze_CO2(latest_measurement, long_avg, short_avg, long_delta, short_delta):
-    """
-    Placeholder for future CO2 analysis.
-    """
-    return None, None, {}
+    co2 = latest_measurement["co2"]
+
+    long_avg_co2 = long_avg["co2"]
+    short_avg_co2 = short_avg["co2"]
+    long_delta_co2 = long_delta["co2"]
+    short_delta_co2 = short_delta["co2"]
+
+    criteria = {
+        "co2_above_800": co2 is not None and co2 > 800,
+        "co2_above_1000": co2 is not None and co2 > 1000,
+        "co2_above_1200": co2 is not None and co2 > 1200,
+        "co2_above_1500": co2 is not None and co2 > 1500,
+        "co2_long_delta_high": long_delta_co2 is not None and long_delta_co2 > 120,
+        "co2_short_delta_high": short_delta_co2 is not None and short_delta_co2 > 80,
+        "co2_short_vs_long": (
+            short_avg_co2 is not None and
+            long_avg_co2 is not None and
+            short_avg_co2 > long_avg_co2 * 1.08
+        ),
+    }
+
+    strong_signals = sum([
+        criteria["co2_above_1200"],
+        criteria["co2_above_1500"],
+        criteria["co2_long_delta_high"],
+    ])
+
+    trend_signals = sum([
+        criteria["co2_short_delta_high"],
+        criteria["co2_short_vs_long"],
+    ])
+
+    if co2 is None:
+        co2_state = "GOOD"
+    elif criteria["co2_above_1500"]:
+        co2_state = "CRITICAL"
+    elif criteria["co2_above_1200"] and trend_signals >= 1:
+        co2_state = "CRITICAL"
+    elif criteria["co2_above_1200"]:
+        co2_state = "VENTILATE"
+    elif criteria["co2_above_1000"] and trend_signals >= 1:
+        co2_state = "VENTILATE"
+    elif criteria["co2_above_1000"]:
+        co2_state = "ELEVATED"
+    elif criteria["co2_above_800"]:
+        co2_state = "ELEVATED"
+    else:
+        co2_state = "GOOD"
+
+    co2_score = strong_signals * 2 + trend_signals
+
+    return co2_state, co2_score, criteria
 
 
 def classify_temperature(value):
@@ -95,9 +143,9 @@ def classify_humidity(value):
 def classify_co2(value):
     if value is None:
         return "Error", "No sensor"
-    if value >= 2000:
+    if value > 1200:
         return "Critical", "Air quality"
-    if value >= 1000:
+    if value > 800:
         return "Elevated", "Air quality"
     return "Good", "Air quality"
 
@@ -212,7 +260,7 @@ def format_display_value(value):
     return str(value)
 
 
-def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state):
+def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state, co2_state="GOOD"):
     temperature_status, temperature_other = classify_temperature(measurement["sen55_temperature"])
     humidity_status, humidity_other = classify_humidity(measurement["sen55_humidity"])
     co2_status, co2_other = classify_co2(measurement["co2"])
@@ -251,7 +299,7 @@ def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state
             "status": co2_status,
             "trend": get_numeric_trend(measurement["co2"], long_avg["co2"], 100.0),
             "other": co2_other,
-            "critical": co2_status == "Critical",
+            "critical": co2_state in ["VENTILATE", "CRITICAL"],
         },
         "smoke": {
             "title": "Smoke",
