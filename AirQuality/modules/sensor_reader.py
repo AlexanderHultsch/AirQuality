@@ -1,5 +1,6 @@
 from smbus2 import i2c_msg
 from datetime import datetime
+import subprocess
 import time
 
 
@@ -135,6 +136,29 @@ def read_scd41_data(bus, scd41_addr):
         print("SCD41 Lesefehler:", e)
         return dict(_last_scd41_data)
 
+def read_pi5_temp():
+    """
+    Reads Raspberry Pi SoC temperature via vcgencmd.
+    Returns a float or None on error.
+    """
+    try:
+        result = subprocess.run(
+            ["vcgencmd", "measure_temp"],
+            capture_output=True,
+            text=True,
+            timeout=1.0,
+            check=True,
+        )
+        output = result.stdout.strip()
+
+        if "=" not in output or "'" not in output:
+            return None
+
+        value_str = output.split("=")[1].split("'")[0]
+        return round(float(value_str), 1)
+    except Exception:
+        return None
+
 
 def build_measurement(bus, sen55_addr, scd41_addr):
     """
@@ -146,11 +170,13 @@ def build_measurement(bus, sen55_addr, scd41_addr):
         return None
 
     scd41_data = read_scd41_data(bus, scd41_addr)
+    pi5_temp = read_pi5_temp()
 
     measurement = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         **sen55_data,
         **scd41_data,
+        "pi5_temp": pi5_temp,
     }
 
     return measurement

@@ -20,6 +20,7 @@ def _measurement(
     co2=650,
     scd41_temperature=22.0,
     scd41_humidity=45.0,
+    pi5_temp=48.0,
 ):
     return {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -34,6 +35,7 @@ def _measurement(
         "co2": co2,
         "scd41_temperature": scd41_temperature,
         "scd41_humidity": scd41_humidity,
+        "pi5_temp": pi5_temp,
     }
 
 

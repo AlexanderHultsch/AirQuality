@@ -113,7 +113,7 @@ def is_night_time(now_dt):
 def get_night_label(now_dt):
     if now_dt.time() >= NIGHT_START:
         return now_dt.strftime("%Y-%m-%d")
-    return (now_dt.date()).strftime("%Y-%m-%d")
+    return now_dt.strftime("%Y-%m-%d")
 
 
 def reset_night_stats(now_dt):
@@ -129,7 +129,7 @@ def reset_night_stats(now_dt):
     night_stats["seconds_above_threshold_2"] = 0
 
 
-def update_night_stats(measurement, smoke_state):
+def update_night_stats(measurement):
     co2_value = measurement.get("co2")
 
     if co2_value is not None:
@@ -192,7 +192,7 @@ def maybe_handle_night_mode(now_dt, measurement, smoke_state, last_smoke_state):
             reset_night_stats(now_dt)
 
         count_night_smoke_transition(last_smoke_state, smoke_state)
-        update_night_stats(measurement, smoke_state)
+        update_night_stats(measurement)
         return
 
     if night_stats["active"] and night_stats["date_label"] != last_night_push_label:
@@ -280,6 +280,7 @@ DISPLAY_PAGES = [
     {"name": "voc", "page_id": DisplayManager.PAGE_VOC},
     {"name": "nox", "page_id": DisplayManager.PAGE_NOX},
     {"name": "smoke", "page_id": DisplayManager.PAGE_SMOKE},
+    {"name": "pi5_temp", "page_id": DisplayManager.PAGE_PI5_TEMP},
 ]
 
 
@@ -306,6 +307,8 @@ def render_display_page(page_name, page_data, critical_transition=False):
         display.show_voc_page(content["value"], content["status"], content["trend"], content["other"])
     elif page_name == "nox":
         display.show_nox_page(content["value"], content["status"], content["trend"], content["other"])
+    elif page_name == "pi5_temp":
+        display.show_pi5_temp_page(content["value"], content["status"], content["trend"], content["other"])
 
     if content["critical"]:
         if critical_transition:
@@ -358,6 +361,7 @@ time.sleep(1)
 
 last_smoke_state = "CLEAR"
 last_co2_state = "GOOD"
+last_priority_page_name = None
 loop_count = 0
 
 analysis_fields = [
@@ -371,7 +375,8 @@ analysis_fields = [
     "nox",
     "co2",
     "scd41_temperature",
-    "scd41_humidity"
+    "scd41_humidity",
+    "pi5_temp",
 ]
 
 alert_states = {
@@ -385,11 +390,11 @@ alert_states = {
     "voc": False,
     "nox": False,
     "smoke": False,
+    "pi5_temp": False,
 }
 
 current_page_index = 0
 last_page_change_time = time.time()
-last_critical_page_name = None
 last_rendered_page_name = None
 
 try:
@@ -517,7 +522,7 @@ try:
                 PUSHOVER_DEFAULT_PRIORITY,
             )
 
-            current_critical_page_name = get_priority_critical_page_name(page_data)
+            current_priority_page_name = get_priority_critical_page_name(page_data)
 
             force_render = False
             critical_transition = False
@@ -532,13 +537,16 @@ try:
                 last_page_change_time = time.time()
                 force_render = True
 
-            elif current_critical_page_name is not None and current_critical_page_name != last_critical_page_name:
-                current_page_index = get_page_index_by_name(current_critical_page_name)
+            elif (
+                current_priority_page_name is not None and
+                current_priority_page_name != last_priority_page_name
+            ):
+                current_page_index = get_page_index_by_name(current_priority_page_name)
                 last_page_change_time = time.time()
                 force_render = True
                 critical_transition = True
 
-            elif current_critical_page_name is None and (time.time() - last_page_change_time) >= DISPLAY_AUTO_PAGE_SECONDS:
+            elif (time.time() - last_page_change_time) >= DISPLAY_AUTO_PAGE_SECONDS:
                 current_page_index = (current_page_index + 1) % len(DISPLAY_PAGES)
                 last_page_change_time = time.time()
                 force_render = True
@@ -551,7 +559,7 @@ try:
 
             maybe_handle_night_mode(datetime.now(), measurement, smoke_state, last_smoke_state)
 
-            last_critical_page_name = current_critical_page_name
+            last_priority_page_name = current_priority_page_name
             last_smoke_state = smoke_state
             last_co2_state = co2_state
 

@@ -21,6 +21,7 @@ class DisplayManager:
     PAGE_VOC = 7
     PAGE_NOX = 8
     PAGE_SMOKE = 9
+    PAGE_PI5_TEMP = 10
 
     EVENT_TOUCH = 0x65
     EVENT_RELEASE = 0x00
@@ -317,6 +318,17 @@ class DisplayManager:
             title="NOX",
             value=value,
             unit="index",
+            status=status,
+            trend=trend,
+            other=other,
+        )
+        
+    def show_pi5_temp_page(self, value, status="", trend="", other=""):
+        self.goto_page(self.PAGE_PI5_TEMP)
+        self.update_page_content(
+            title="PI5 Temp",
+            value=value,
+            unit="C",
             status=status,
             trend=trend,
             other=other,

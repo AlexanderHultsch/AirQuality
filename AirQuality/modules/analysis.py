@@ -219,6 +219,15 @@ def classify_smoke_display(smoke_state):
         return "Good", ""
     return "Error", "State error"
 
+def classify_pi5_temp(value):
+    if value is None:
+        return "Error", "Read error"
+    if value >= 75:
+        return "Critical", "System hot"
+    if value >= 60:
+        return "Elevated", "System warm"
+    return "Good", "System temp"
+
 
 def get_numeric_trend(current_value, baseline_value, threshold):
     if current_value is None or baseline_value is None:
@@ -265,6 +274,7 @@ def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state
     humidity_status, humidity_other = classify_humidity(measurement["sen55_humidity"])
     co2_status, co2_other = classify_co2(measurement["co2"])
     smoke_status, smoke_other = classify_smoke_display(smoke_state)
+    pi5_temp_status, pi5_temp_other = classify_pi5_temp(measurement["pi5_temp"])
 
     pm1_0_status, pm1_0_other = classify_pm1_0(measurement["pm1_0"])
     pm2_5_status, pm2_5_other = classify_pm2_5(measurement["pm2_5"])
@@ -364,6 +374,15 @@ def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state
             "other": nox_other,
             "critical": nox_status == "Critical",
         },
+        "pi5_temp": {
+            "title": "PI5 Temp",
+            "value": format_display_value(measurement["pi5_temp"]),
+            "unit": "C",
+            "status": pi5_temp_status,
+            "trend": get_numeric_trend(measurement["pi5_temp"], long_avg["pi5_temp"], 2.0),
+            "other": pi5_temp_other,
+            "critical": pi5_temp_status == "Critical",
+        }
     }
 
     return page_data
