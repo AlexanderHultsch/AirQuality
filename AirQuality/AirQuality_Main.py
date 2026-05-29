@@ -6,7 +6,9 @@
 # PIN5_SEL_Blue___Pin14
 # PIN6_NC_Purple__No connection
 
+import math
 import time
+from datetime import datetime, time as dt_time
 from smbus2 import SMBus, i2c_msg
 from display_manager import DisplayManager
 from modules.sensor_reader import build_measurement, start_scd41_periodic_measurement
@@ -17,7 +19,10 @@ from modules.logging_utils import (
     log_pre_co2_window,
     log_co2_event,
 )
-from modules.notifications import process_push_notifications
+from modules.notifications import (
+    process_push_notifications,
+    send_pushover_notification,
+)
 from test_script import (
     TEST_MODE,
     ACTIVE_TEST_SCENARIO,
@@ -33,16 +38,16 @@ from test_script import (
 
 REFRESH_RATE = 1  # seconds
 PRE_TRIGGER_SECONDS = 30
-PRE_TRIGGER_LEN = int(PRE_TRIGGER_SECONDS / REFRESH_RATE)
+PRE_TRIGGER_LEN = max(1, math.ceil(PRE_TRIGGER_SECONDS / REFRESH_RATE))
 
-MAX_LOG_FILE_SIZE_MB = 5  # Max size of Logs
-LOG_TRIM_TARGET_RATIO = 0.75  # after trimming, keep about 75% of max size
+MAX_LOG_FILE_SIZE_MB = 5
+LOG_TRIM_TARGET_RATIO = 0.75
 
 LONG_WINDOW_SECONDS = 5 * 60
 SHORT_WINDOW_SECONDS = 15
 
-LONG_MAX_LIST_LEN = int(LONG_WINDOW_SECONDS / REFRESH_RATE)
-SHORT_MAX_LIST_LEN = int(SHORT_WINDOW_SECONDS / REFRESH_RATE)
+LONG_MAX_LIST_LEN = max(1, math.ceil(LONG_WINDOW_SECONDS / REFRESH_RATE))
+SHORT_MAX_LIST_LEN = max(1, math.ceil(SHORT_WINDOW_SECONDS / REFRESH_RATE))
 
 BUS_ID = 1
 
@@ -66,11 +71,145 @@ DISPLAY_ENABLED = True if not TEST_MODE else TEST_ENABLE_DISPLAY
 PUSHOVER_ENABLED = True if not TEST_MODE else TEST_ENABLE_PUSHOVER
 LOGGING_ENABLED = True if not TEST_MODE else TEST_ENABLE_LOGGING
 
+# Night tracking
+NIGHT_START = dt_time(22, 0)
+NIGHT_END = dt_time(7, 0)
+
+CO2_MINUTES_THRESHOLD_1 = 1000
+CO2_MINUTES_THRESHOLD_2 = 1200
+
 long_window = []
 short_window = []
 
 bus = SMBus(BUS_ID)
 display = DisplayManager(port=DISPLAY_PORT, baudrate=DISPLAY_BAUDRATE, timeout=0.1)
+
+
+# ============================================================
+# Night Tracking
+# ============================================================
+
+night_stats = {
+    "active": False,
+    "date_label": None,
+    "smoke_suspicious_count": 0,
+    "smoke_critical_count": 0,
+    "co2_min": None,
+    "co2_max": None,
+    "co2_sum": 0.0,
+    "co2_count": 0,
+    "seconds_above_threshold_1": 0,
+    "seconds_above_threshold_2": 0,
+}
+
+last_night_push_label = None
+
+
+def is_night_time(now_dt):
+    current_t = now_dt.time()
+    return current_t >= NIGHT_START or current_t < NIGHT_END
+
+
+def get_night_label(now_dt):
+    if now_dt.time() >= NIGHT_START:
+        return now_dt.strftime("%Y-%m-%d")
+    return (now_dt.date()).strftime("%Y-%m-%d")
+
+
+def reset_night_stats(now_dt):
+    night_stats["active"] = True
+    night_stats["date_label"] = get_night_label(now_dt)
+    night_stats["smoke_suspicious_count"] = 0
+    night_stats["smoke_critical_count"] = 0
+    night_stats["co2_min"] = None
+    night_stats["co2_max"] = None
+    night_stats["co2_sum"] = 0.0
+    night_stats["co2_count"] = 0
+    night_stats["seconds_above_threshold_1"] = 0
+    night_stats["seconds_above_threshold_2"] = 0
+
+
+def update_night_stats(measurement, smoke_state):
+    co2_value = measurement.get("co2")
+
+    if co2_value is not None:
+        if night_stats["co2_min"] is None or co2_value < night_stats["co2_min"]:
+            night_stats["co2_min"] = co2_value
+
+        if night_stats["co2_max"] is None or co2_value > night_stats["co2_max"]:
+            night_stats["co2_max"] = co2_value
+
+        night_stats["co2_sum"] += co2_value
+        night_stats["co2_count"] += 1
+
+        if co2_value > CO2_MINUTES_THRESHOLD_1:
+            night_stats["seconds_above_threshold_1"] += REFRESH_RATE
+
+        if co2_value > CO2_MINUTES_THRESHOLD_2:
+            night_stats["seconds_above_threshold_2"] += REFRESH_RATE
+
+
+def count_night_smoke_transition(last_smoke_state, smoke_state):
+    if last_smoke_state != "SUSPICIOUS" and smoke_state == "SUSPICIOUS":
+        night_stats["smoke_suspicious_count"] += 1
+
+    if last_smoke_state != "SMOKE" and smoke_state == "SMOKE":
+        night_stats["smoke_critical_count"] += 1
+
+
+def build_night_summary_message():
+    if night_stats["co2_count"] > 0:
+        avg_co2 = round(night_stats["co2_sum"] / night_stats["co2_count"], 1)
+    else:
+        avg_co2 = "n/a"
+
+    min_co2 = night_stats["co2_min"] if night_stats["co2_min"] is not None else "n/a"
+    max_co2 = night_stats["co2_max"] if night_stats["co2_max"] is not None else "n/a"
+
+    minutes_above_1 = round(night_stats["seconds_above_threshold_1"] / 60)
+    minutes_above_2 = round(night_stats["seconds_above_threshold_2"] / 60)
+
+    title = f"Nachtbericht {night_stats['date_label']}"
+    message = (
+        f"Smoke suspicion: {night_stats['smoke_suspicious_count']}\n"
+        f"Smoke critical: {night_stats['smoke_critical_count']}\n"
+        f"CO2 min: {min_co2}\n"
+        f"CO2 max: {max_co2}\n"
+        f"CO2 avg: {avg_co2}\n"
+        f"Min > {CO2_MINUTES_THRESHOLD_1}: {minutes_above_1}\n"
+        f"Min > {CO2_MINUTES_THRESHOLD_2}: {minutes_above_2}"
+    )
+    return title, message
+
+
+def maybe_handle_night_mode(now_dt, measurement, smoke_state, last_smoke_state):
+    global last_night_push_label
+
+    if is_night_time(now_dt):
+        current_label = get_night_label(now_dt)
+
+        if not night_stats["active"] or night_stats["date_label"] != current_label:
+            reset_night_stats(now_dt)
+
+        count_night_smoke_transition(last_smoke_state, smoke_state)
+        update_night_stats(measurement, smoke_state)
+        return
+
+    if night_stats["active"] and night_stats["date_label"] != last_night_push_label:
+        title, message = build_night_summary_message()
+
+        send_pushover_notification(
+            title,
+            message,
+            PUSHOVER_DEFAULT_PRIORITY,
+            PUSHOVER_ENABLED,
+            PUSHOVER_KEYS_FILE,
+            PUSHOVER_API_URL,
+            PUSHOVER_TIMEOUT_SECONDS,
+        )
+
+        last_night_push_label = night_stats["date_label"]
+        night_stats["active"] = False
 
 
 # ============================================================
@@ -120,7 +259,6 @@ def calculate_avg_and_delta(window_list, fields):
 def handle_environment_event(event_type):
     if event_type == "smoke":
         print("Fenster schließt")
-        
     elif event_type == "co2_ventilate":
         print("Fenster Öffnen Empfohlen")
     elif event_type == "co2_critical":
@@ -210,7 +348,6 @@ def get_measurement(loop_count):
 # Main
 # ============================================================
 
-# Start SEN55 measurement: 0x0021
 bus.i2c_rdwr(i2c_msg.write(SEN55_ADDR, [0x00, 0x21]))
 print("SEN55 Messung gestartet...")
 
@@ -339,7 +476,7 @@ try:
                     MAX_LOG_FILE_SIZE_MB,
                     LOG_TRIM_TARGET_RATIO
                 )
-                
+
             if co2_state in ["VENTILATE", "CRITICAL"] and LOGGING_ENABLED:
                 log_co2_event(
                     measurement["timestamp"],
@@ -411,6 +548,8 @@ try:
             if (force_render or page_name != last_rendered_page_name) and DISPLAY_ENABLED:
                 render_display_page(page_name, page_data, critical_transition=critical_transition)
                 last_rendered_page_name = page_name
+
+            maybe_handle_night_mode(datetime.now(), measurement, smoke_state, last_smoke_state)
 
             last_critical_page_name = current_critical_page_name
             last_smoke_state = smoke_state

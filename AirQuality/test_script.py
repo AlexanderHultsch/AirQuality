@@ -1,10 +1,10 @@
 from datetime import datetime
 
 TEST_MODE = False
-ACTIVE_TEST_SCENARIO = "smoke_after_5_loops"
+ACTIVE_TEST_SCENARIO = "normal_operation"
 
 TEST_ENABLE_DISPLAY = True
-TEST_ENABLE_PUSHOVER = True
+TEST_ENABLE_PUSHOVER = False
 TEST_ENABLE_LOGGING = True
 
 
