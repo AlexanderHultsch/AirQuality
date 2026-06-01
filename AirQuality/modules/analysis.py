@@ -1,223 +1,93 @@
-def analyze_smoke(latest_measurement, long_avg, short_avg, long_delta, short_delta):
-    pm1_0 = latest_measurement["pm1_0"]
-    pm2_5 = latest_measurement["pm2_5"]
-
-    long_avg_pm1_0 = long_avg["pm1_0"]
-    long_avg_pm2_5 = long_avg["pm2_5"]
-
-    short_avg_pm2_5 = short_avg["pm2_5"]
-
-    long_delta_pm1_0 = long_delta["pm1_0"]
-    long_delta_pm2_5 = long_delta["pm2_5"]
-
-    if pm2_5 > 10:
-        pm_ratio_value = pm1_0 / pm2_5
-    else:
-        pm_ratio_value = 0
-
-    criteria = {
-        "pm2_5_abs": pm2_5 > 10 or pm1_0 > 8,
-        "pm2_5_long_delta": long_delta_pm2_5 is not None and long_delta_pm2_5 > 3.0,
-        "pm1_0_long_delta": long_delta_pm1_0 is not None and long_delta_pm1_0 > 3.0,
-        "pm2_5_spike": long_avg_pm2_5 is not None and pm2_5 > long_avg_pm2_5 * 1.45,
-        "pm1_0_spike": long_avg_pm1_0 is not None and pm1_0 > long_avg_pm1_0 * 1.45,
-        "pm2_5_short_vs_long": (
-            short_avg_pm2_5 is not None and
-            long_avg_pm2_5 is not None and
-            short_avg_pm2_5 > long_avg_pm2_5 * 1.20
-        ),
-        "pm_ratio": pm2_5 > 10 and pm_ratio_value > 0.88,
-        "voc_spike": False
-    }
-
-    strong_signals = sum([
-        criteria["pm2_5_long_delta"],
-        criteria["pm1_0_long_delta"],
-        criteria["pm2_5_spike"],
-        criteria["pm1_0_spike"]
-    ])
-
-    trend_signals = sum([
-        criteria["pm2_5_short_vs_long"]
-    ])
-
-    support_signals = sum([
-        criteria["pm_ratio"]
-    ])
-
-    if not criteria["pm2_5_abs"]:
-        smoke_state = "CLEAR"
-    elif strong_signals >= 2:
-        smoke_state = "SMOKE"
-    elif strong_signals >= 1 and trend_signals >= 1:
-        smoke_state = "SMOKE"
-    elif strong_signals >= 1:
-        smoke_state = "SUSPICIOUS"
-    elif trend_signals >= 1 and support_signals >= 1:
-        smoke_state = "SUSPICIOUS"
-    elif criteria["pm2_5_abs"] and trend_signals >= 1:
-        smoke_state = "SUSPICIOUS"
-    else:
-        smoke_state = "CLEAR"
-
-    smoke_score = strong_signals * 2 + trend_signals + support_signals
-
-    return smoke_state, smoke_score, criteria
+def safe_round(value, digits=1):
+    if value is None:
+        return None
+    return round(value, digits)
 
 
-def analyze_CO2(latest_measurement, long_avg, short_avg, long_delta, short_delta):
-    co2 = latest_measurement["co2"]
+def format_display_value(value):
+    if value is None:
+        return "n/a"
+    if isinstance(value, float):
+        return f"{value:.1f}"
+    return str(value)
 
-    long_avg_co2 = long_avg["co2"]
-    short_avg_co2 = short_avg["co2"]
-    long_delta_co2 = long_delta["co2"]
-    short_delta_co2 = short_delta["co2"]
 
-    criteria = {
-        "co2_above_800": co2 is not None and co2 > 800,
-        "co2_above_1000": co2 is not None and co2 > 1000,
-        "co2_above_1200": co2 is not None and co2 > 1200,
-        "co2_above_1500": co2 is not None and co2 > 1500,
-        "co2_long_delta_high": long_delta_co2 is not None and long_delta_co2 > 120,
-        "co2_short_delta_high": short_delta_co2 is not None and short_delta_co2 > 80,
-        "co2_short_vs_long": (
-            short_avg_co2 is not None and
-            long_avg_co2 is not None and
-            short_avg_co2 > long_avg_co2 * 1.08
-        ),
-    }
+def get_numeric_trend(current_value, average_value, deadband=0.5):
+    if current_value is None or average_value is None:
+        return ""
 
-    strong_signals = sum([
-        criteria["co2_above_1200"],
-        criteria["co2_above_1500"],
-        criteria["co2_long_delta_high"],
-    ])
+    delta = current_value - average_value
 
-    trend_signals = sum([
-        criteria["co2_short_delta_high"],
-        criteria["co2_short_vs_long"],
-    ])
-
-    if co2 is None:
-        co2_state = "GOOD"
-    elif criteria["co2_above_1500"]:
-        co2_state = "CRITICAL"
-    elif criteria["co2_above_1200"] and trend_signals >= 1:
-        co2_state = "CRITICAL"
-    elif criteria["co2_above_1200"]:
-        co2_state = "VENTILATE"
-    elif criteria["co2_above_1000"] and trend_signals >= 1:
-        co2_state = "VENTILATE"
-    elif criteria["co2_above_1000"]:
-        co2_state = "ELEVATED"
-    elif criteria["co2_above_800"]:
-        co2_state = "ELEVATED"
-    else:
-        co2_state = "GOOD"
-
-    co2_score = strong_signals * 2 + trend_signals
-
-    return co2_state, co2_score, criteria
+    if delta > deadband:
+        return "Rising"
+    if delta < -deadband:
+        return "Falling"
+    return "Stable"
 
 
 def classify_temperature(value):
     if value is None:
-        return "Error", "Sensor error"
-    if value <= 15 or value >= 30:
-        return "Critical", ""
-    if value <= 18 or value >= 27:
-        return "Elevated", ""
-    return "Good", ""
+        return "Error", "Read error"
+    if value >= 30.0:
+        return "Critical", "Too hot"
+    if value >= 27.0:
+        return "Elevated", "Warm"
+    if value < 17.0:
+        return "Low", "Cool"
+    return "Good", "Comfortable"
 
 
 def classify_humidity(value):
     if value is None:
-        return "Error", "Sensor error"
-    if value < 25 or value > 70:
-        return "Critical", ""
-    if value < 35 or value > 60:
-        return "Elevated", ""
-    return "Good", ""
+        return "Error", "Read error"
+    if value >= 70:
+        return "Critical", "Too humid"
+    if value >= 60:
+        return "Elevated", "Humid"
+    if value < 30:
+        return "Low", "Too dry"
+    return "Good", "Comfortable"
 
 
 def classify_co2(value):
     if value is None:
-        return "Error", "No sensor"
-    if value > 1200:
-        return "Critical", "Air quality"
-    if value > 800:
-        return "Elevated", "Air quality"
-    return "Good", "Air quality"
+        return "Error", "Read error"
+    if value >= 1500:
+        return "Critical", "Open window"
+    if value >= 1000:
+        return "Elevated", "Ventilate"
+    return "Good", "Air ok"
 
 
-def classify_pm1_0(value):
+def classify_particulate(value, elevated_threshold, critical_threshold):
     if value is None:
-        return "Error", "Sensor error"
-    if value >= 25:
-        return "Critical", "Fine dust"
-    if value >= 10:
-        return "Elevated", "Fine dust"
-    return "Good", "Fine dust"
-
-
-def classify_pm2_5(value):
-    if value is None:
-        return "Error", "Sensor error"
-    if value >= 35:
-        return "Critical", "Particles"
-    if value >= 12:
-        return "Elevated", "Particles"
-    return "Good", "Particles"
-
-
-def classify_pm4_0(value):
-    if value is None:
-        return "Error", "Sensor error"
-    if value >= 35:
-        return "Critical", "Mid dust"
-    if value >= 15:
-        return "Elevated", "Mid dust"
-    return "Good", "Mid dust"
-
-
-def classify_pm10(value):
-    if value is None:
-        return "Error", "Sensor error"
-    if value >= 50:
-        return "Critical", "Coarse dust"
-    if value >= 20:
-        return "Elevated", "Coarse dust"
-    return "Good", "Coarse dust"
+        return "Error", "Read error"
+    if value >= critical_threshold:
+        return "Critical", "High particles"
+    if value >= elevated_threshold:
+        return "Elevated", "Raised particles"
+    return "Good", "Particles ok"
 
 
 def classify_voc(value):
     if value is None:
-        return "Error", "Sensor error"
-    if value >= 300:
-        return "Critical", "Air gases"
-    if value >= 150:
-        return "Elevated", "Air gases"
-    return "Good", "Air gases"
+        return "Error", "Read error"
+    if value >= 400:
+        return "Critical", "VOC high"
+    if value >= 200:
+        return "Elevated", "VOC raised"
+    return "Good", "VOC ok"
 
 
 def classify_nox(value):
     if value is None:
-        return "Error", "Sensor error"
-    if value >= 300:
-        return "Critical", "Exhaust"
-    if value >= 150:
-        return "Elevated", "Exhaust"
-    return "Good", "Exhaust"
+        return "Error", "Read error"
+    if value >= 10:
+        return "Critical", "NOx high"
+    if value >= 5:
+        return "Elevated", "NOx raised"
+    return "Good", "NOx ok"
 
-
-def classify_smoke_display(smoke_state):
-    if smoke_state == "SMOKE":
-        return "Critical", ""
-    if smoke_state == "SUSPICIOUS":
-        return "Elevated", ""
-    if smoke_state == "CLEAR":
-        return "Good", ""
-    return "Error", "State error"
 
 def classify_pi5_temp(value):
     if value is None:
@@ -229,76 +99,228 @@ def classify_pi5_temp(value):
     return "Good", "System temp"
 
 
-def get_numeric_trend(current_value, baseline_value, threshold):
-    if current_value is None or baseline_value is None:
-        return ""
+def analyze_smoke(measurement, long_avg, short_avg, long_delta, short_delta):
+    pm1_0 = measurement.get("pm1_0")
+    pm2_5 = measurement.get("pm2_5")
+    voc = measurement.get("voc")
 
-    delta = current_value - baseline_value
+    long_pm1_0 = long_avg.get("pm1_0")
+    long_pm2_5 = long_avg.get("pm2_5")
+    short_pm1_0 = short_avg.get("pm1_0")
+    short_pm2_5 = short_avg.get("pm2_5")
+    long_voc = long_avg.get("voc")
+    short_voc = short_avg.get("voc")
 
-    if delta > threshold:
-        return "Rising"
-    if delta < -threshold:
-        return "Falling"
-    return "Stable"
+    pm1_0_long_delta = long_delta.get("pm1_0")
+    pm2_5_long_delta = long_delta.get("pm2_5")
+    pm1_0_short_delta = short_delta.get("pm1_0")
+    pm2_5_short_delta = short_delta.get("pm2_5")
+    voc_long_delta = long_delta.get("voc")
+    voc_short_delta = short_delta.get("voc")
+
+    pm_ratio = None
+    if pm2_5 is not None and pm10 := measurement.get("pm10"):
+        if pm10 > 0:
+            pm_ratio = round(pm2_5 / pm10, 2)
+
+    pm_abs_suspicious = (
+        (pm2_5 is not None and pm2_5 >= 6.0) or
+        (pm1_0 is not None and pm1_0 >= 5.0)
+    )
+
+    pm_abs_smoke = (
+        (pm2_5 is not None and pm2_5 >= 10.0) or
+        (pm1_0 is not None and pm1_0 >= 8.0)
+    )
+
+    pm_delta_suspicious = (
+        (pm2_5_long_delta is not None and pm2_5_long_delta >= 2.5) or
+        (pm1_0_long_delta is not None and pm1_0_long_delta >= 2.0)
+    )
+
+    pm_delta_smoke = (
+        (pm2_5_long_delta is not None and pm2_5_long_delta >= 5.0) or
+        (pm1_0_long_delta is not None and pm1_0_long_delta >= 4.0)
+    )
+
+    pm_short_spike = (
+        (pm2_5_short_delta is not None and pm2_5_short_delta >= 2.0) or
+        (pm1_0_short_delta is not None and pm1_0_short_delta >= 1.5)
+    )
+
+    pm_short_spike_strong = (
+        (pm2_5_short_delta is not None and pm2_5_short_delta >= 4.0) or
+        (pm1_0_short_delta is not None and pm1_0_short_delta >= 3.0)
+    )
+
+    short_vs_long_raised = (
+        short_pm2_5 is not None and long_pm2_5 is not None and short_pm2_5 >= long_pm2_5 * 1.6
+    ) or (
+        short_pm1_0 is not None and long_pm1_0 is not None and short_pm1_0 >= long_pm1_0 * 1.6
+    )
+
+    short_vs_long_strong = (
+        short_pm2_5 is not None and long_pm2_5 is not None and short_pm2_5 >= long_pm2_5 * 2.2
+    ) or (
+        short_pm1_0 is not None and long_pm1_0 is not None and short_pm1_0 >= long_pm1_0 * 2.0
+    )
+
+    voc_support = (
+        (voc is not None and voc >= 180) or
+        (voc_long_delta is not None and voc_long_delta >= 35) or
+        (voc_short_delta is not None and voc_short_delta >= 20) or
+        (
+            short_voc is not None and long_voc is not None and
+            short_voc >= long_voc * 1.2 and short_voc >= 140
+        )
+    )
+
+    pm_ratio_criteria = pm_ratio is not None and pm_ratio >= 0.75
+
+    suspicious_score = 0
+    smoke_score = 0
+
+    if pm_abs_suspicious:
+        suspicious_score += 2
+    if pm_delta_suspicious:
+        suspicious_score += 2
+    if pm_short_spike:
+        suspicious_score += 1
+    if short_vs_long_raised:
+        suspicious_score += 2
+    if pm_ratio_criteria:
+        suspicious_score += 1
+    if voc_support:
+        suspicious_score += 1
+
+    if pm_abs_smoke:
+        smoke_score += 3
+    if pm_delta_smoke:
+        smoke_score += 3
+    if pm_short_spike_strong:
+        smoke_score += 2
+    if short_vs_long_strong:
+        smoke_score += 2
+    if pm_ratio_criteria:
+        smoke_score += 1
+    if voc_support:
+        smoke_score += 1
+
+    probable_smoke = (
+        pm_abs_suspicious and
+        pm_delta_suspicious and
+        (pm_short_spike or short_vs_long_raised)
+    )
+
+    strong_smoke = (
+        pm_abs_smoke and
+        (pm_delta_smoke or pm_short_spike_strong or short_vs_long_strong)
+    )
+
+    if strong_smoke or smoke_score >= 6:
+        state = "SMOKE"
+        score = smoke_score
+    elif probable_smoke or suspicious_score >= 4:
+        state = "SUSPICIOUS"
+        score = suspicious_score
+    else:
+        state = "CLEAR"
+        score = max(suspicious_score, smoke_score)
+
+    criteria = {
+        "pm_abs_suspicious": pm_abs_suspicious,
+        "pm_abs_smoke": pm_abs_smoke,
+        "pm_delta_suspicious": pm_delta_suspicious,
+        "pm_delta_smoke": pm_delta_smoke,
+        "pm_short_spike": pm_short_spike,
+        "pm_short_spike_strong": pm_short_spike_strong,
+        "short_vs_long_raised": short_vs_long_raised,
+        "short_vs_long_strong": short_vs_long_strong,
+        "pm_ratio_criteria": pm_ratio_criteria,
+        "voc_support": voc_support,
+        "pm_ratio": pm_ratio,
+        "suspicious_score": suspicious_score,
+        "smoke_score": smoke_score,
+        "probable_smoke": probable_smoke,
+        "strong_smoke": strong_smoke,
+    }
+
+    return state, score, criteria
 
 
-def get_smoke_trend(current_smoke_state, last_smoke_state):
-    if current_smoke_state == "SMOKE":
-        if last_smoke_state == "SMOKE":
-            return "Stable"
-        return "Rising"
+def analyze_CO2(measurement, long_avg, short_avg, long_delta, short_delta):
+    co2 = measurement.get("co2")
+    co2_long_delta = long_delta.get("co2")
+    co2_short_delta = short_delta.get("co2")
 
-    if current_smoke_state == "SUSPICIOUS":
-        if last_smoke_state == "SMOKE":
-            return "Falling"
-        if last_smoke_state == "SUSPICIOUS":
-            return "Stable"
-        return "Rising"
+    score = 0
+    criteria = {
+        "co2_abs_1000": co2 is not None and co2 >= 1000,
+        "co2_abs_1200": co2 is not None and co2 >= 1200,
+        "co2_abs_1500": co2 is not None and co2 >= 1500,
+        "co2_long_delta_150": co2_long_delta is not None and co2_long_delta >= 150,
+        "co2_short_delta_80": co2_short_delta is not None and co2_short_delta >= 80,
+    }
 
-    if current_smoke_state == "CLEAR":
-        if last_smoke_state in ["SMOKE", "SUSPICIOUS"]:
-            return "Falling"
-        return "Stable"
+    if criteria["co2_abs_1000"]:
+        score += 1
+    if criteria["co2_abs_1200"]:
+        score += 1
+    if criteria["co2_abs_1500"]:
+        score += 2
+    if criteria["co2_long_delta_150"]:
+        score += 1
+    if criteria["co2_short_delta_80"]:
+        score += 1
 
-    return ""
+    if co2 is not None and co2 >= 1500:
+        return "CRITICAL", score, criteria
+    if co2 is not None and co2 >= 1000:
+        return "VENTILATE", score, criteria
+    return "GOOD", score, criteria
 
 
-def format_display_value(value):
-    if value is None:
-        return "Error"
-    return str(value)
-
-
-def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state, co2_state="GOOD"):
-    temperature_status, temperature_other = classify_temperature(measurement["sen55_temperature"])
+def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state, co2_state):
+    room_temp_status, room_temp_other = classify_temperature(measurement["sen55_temperature"])
     humidity_status, humidity_other = classify_humidity(measurement["sen55_humidity"])
     co2_status, co2_other = classify_co2(measurement["co2"])
-    smoke_status, smoke_other = classify_smoke_display(smoke_state)
-    pi5_temp_status, pi5_temp_other = classify_pi5_temp(measurement["pi5_temp"])
-
-    pm1_0_status, pm1_0_other = classify_pm1_0(measurement["pm1_0"])
-    pm2_5_status, pm2_5_other = classify_pm2_5(measurement["pm2_5"])
-    pm4_0_status, pm4_0_other = classify_pm4_0(measurement["pm4_0"])
-    pm10_status, pm10_other = classify_pm10(measurement["pm10"])
+    pm1_status, pm1_other = classify_particulate(measurement["pm1_0"], 10, 20)
+    pm25_status, pm25_other = classify_particulate(measurement["pm2_5"], 10, 25)
+    pm4_status, pm4_other = classify_particulate(measurement["pm4_0"], 15, 30)
+    pm10_status, pm10_other = classify_particulate(measurement["pm10"], 20, 40)
     voc_status, voc_other = classify_voc(measurement["voc"])
     nox_status, nox_other = classify_nox(measurement["nox"])
+    pi5_temp_status, pi5_temp_other = classify_pi5_temp(measurement["pi5_temp"])
 
-    page_data = {
+    if smoke_state == "SMOKE":
+        smoke_display_status = "Critical"
+        smoke_display_other = "Smoke detected"
+        smoke_critical = True
+    elif smoke_state == "SUSPICIOUS":
+        smoke_display_status = "Suspicious"
+        smoke_display_other = "Possible smoke"
+        smoke_critical = False
+    else:
+        smoke_display_status = "Clear"
+        smoke_display_other = "No smoke"
+        smoke_critical = False
+
+    return {
         "temperature": {
             "title": "Temperature",
             "value": format_display_value(measurement["sen55_temperature"]),
             "unit": "C",
-            "status": temperature_status,
-            "trend": get_numeric_trend(measurement["sen55_temperature"], long_avg["sen55_temperature"], 0.5),
-            "other": temperature_other,
-            "critical": temperature_status == "Critical",
+            "status": room_temp_status,
+            "trend": get_numeric_trend(measurement["sen55_temperature"], long_avg["sen55_temperature"], 0.3),
+            "other": room_temp_other,
+            "critical": room_temp_status == "Critical",
         },
         "humidity": {
             "title": "Humidity",
             "value": format_display_value(measurement["sen55_humidity"]),
             "unit": "%",
             "status": humidity_status,
-            "trend": get_numeric_trend(measurement["sen55_humidity"], long_avg["sen55_humidity"], 3.0),
+            "trend": get_numeric_trend(measurement["sen55_humidity"], long_avg["sen55_humidity"], 2.0),
             "other": humidity_other,
             "critical": humidity_status == "Critical",
         },
@@ -307,52 +329,43 @@ def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state
             "value": format_display_value(measurement["co2"]),
             "unit": "ppm",
             "status": co2_status,
-            "trend": get_numeric_trend(measurement["co2"], long_avg["co2"], 100.0),
+            "trend": get_numeric_trend(measurement["co2"], long_avg["co2"], 30),
             "other": co2_other,
-            "critical": co2_state in ["VENTILATE", "CRITICAL"],
-        },
-        "smoke": {
-            "title": "Smoke",
-            "value": smoke_state if smoke_state else "Error",
-            "unit": "",
-            "status": smoke_status,
-            "trend": get_smoke_trend(smoke_state, last_smoke_state),
-            "other": smoke_other,
-            "critical": smoke_status == "Critical",
+            "critical": co2_status == "Critical",
         },
         "pm1_0": {
             "title": "PM1.0",
             "value": format_display_value(measurement["pm1_0"]),
             "unit": "ug/m3",
-            "status": pm1_0_status,
-            "trend": get_numeric_trend(measurement["pm1_0"], long_avg["pm1_0"], 2.0),
-            "other": pm1_0_other,
-            "critical": pm1_0_status == "Critical",
+            "status": pm1_status,
+            "trend": get_numeric_trend(measurement["pm1_0"], long_avg["pm1_0"], 0.5),
+            "other": pm1_other,
+            "critical": pm1_status == "Critical",
         },
         "pm2_5": {
             "title": "PM2.5",
             "value": format_display_value(measurement["pm2_5"]),
             "unit": "ug/m3",
-            "status": pm2_5_status,
-            "trend": get_numeric_trend(measurement["pm2_5"], long_avg["pm2_5"], 2.0),
-            "other": pm2_5_other,
-            "critical": pm2_5_status == "Critical",
+            "status": pm25_status,
+            "trend": get_numeric_trend(measurement["pm2_5"], long_avg["pm2_5"], 0.5),
+            "other": pm25_other,
+            "critical": pm25_status == "Critical",
         },
         "pm4_0": {
             "title": "PM4.0",
             "value": format_display_value(measurement["pm4_0"]),
             "unit": "ug/m3",
-            "status": pm4_0_status,
-            "trend": get_numeric_trend(measurement["pm4_0"], long_avg["pm4_0"], 2.0),
-            "other": pm4_0_other,
-            "critical": pm4_0_status == "Critical",
+            "status": pm4_status,
+            "trend": get_numeric_trend(measurement["pm4_0"], long_avg["pm4_0"], 0.5),
+            "other": pm4_other,
+            "critical": pm4_status == "Critical",
         },
         "pm10": {
             "title": "PM10",
             "value": format_display_value(measurement["pm10"]),
             "unit": "ug/m3",
             "status": pm10_status,
-            "trend": get_numeric_trend(measurement["pm10"], long_avg["pm10"], 2.0),
+            "trend": get_numeric_trend(measurement["pm10"], long_avg["pm10"], 0.5),
             "other": pm10_other,
             "critical": pm10_status == "Critical",
         },
@@ -361,7 +374,7 @@ def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state
             "value": format_display_value(measurement["voc"]),
             "unit": "index",
             "status": voc_status,
-            "trend": get_numeric_trend(measurement["voc"], long_avg["voc"], 20.0),
+            "trend": get_numeric_trend(measurement["voc"], long_avg["voc"], 10),
             "other": voc_other,
             "critical": voc_status == "Critical",
         },
@@ -370,19 +383,26 @@ def build_display_page_data(measurement, long_avg, smoke_state, last_smoke_state
             "value": format_display_value(measurement["nox"]),
             "unit": "index",
             "status": nox_status,
-            "trend": get_numeric_trend(measurement["nox"], long_avg["nox"], 20.0),
+            "trend": get_numeric_trend(measurement["nox"], long_avg["nox"], 1),
             "other": nox_other,
             "critical": nox_status == "Critical",
+        },
+        "smoke": {
+            "title": "Smoke",
+            "value": smoke_state,
+            "unit": "",
+            "status": smoke_display_status,
+            "trend": "",
+            "other": smoke_display_other,
+            "critical": smoke_critical,
         },
         "pi5_temp": {
             "title": "PI5 Temp",
             "value": format_display_value(measurement["pi5_temp"]),
             "unit": "C",
             "status": pi5_temp_status,
-            "trend": get_numeric_trend(measurement["pi5_temp"], long_avg["pi5_temp"], 2.0),
+            "trend": get_numeric_trend(measurement["pi5_temp"], long_avg["pi5_temp"], 1.0),
             "other": pi5_temp_other,
             "critical": pi5_temp_status == "Critical",
-        }
+        },
     }
-
-    return page_data
