@@ -18,6 +18,8 @@ from modules.logging_utils import (
     log_smoke_event,
     log_pre_co2_window,
     log_co2_event,
+    log_pre_voc_window,
+    log_voc_event,
 )
 from modules.notifications import (
     process_push_notifications,
@@ -78,16 +80,15 @@ NIGHT_END = dt_time(7, 0)
 CO2_MINUTES_THRESHOLD_1 = 1000
 CO2_MINUTES_THRESHOLD_2 = 1200
 
+CO2_EVENT_COOLDOWN_SECONDS = 5 * 60
+VOC_LOG_THRESHOLD = 200
+VOC_EVENT_COOLDOWN_SECONDS = 10 * 60
+
 long_window = []
 short_window = []
 
 bus = SMBus(BUS_ID)
 display = DisplayManager(port=DISPLAY_PORT, baudrate=DISPLAY_BAUDRATE, timeout=0.1)
-
-
-# ============================================================
-# Night Tracking
-# ============================================================
 
 night_stats = {
     "active": False,
@@ -212,9 +213,26 @@ def maybe_handle_night_mode(now_dt, measurement, smoke_state, last_smoke_state):
         night_stats["active"] = False
 
 
-# ============================================================
-# Window / Statistics Helpers
-# ============================================================
+def is_display_sleep_time(now_dt):
+    return is_night_time(now_dt)
+
+
+def enter_display_sleep_mode():
+    display.goto_page(DisplayManager.PAGE_TEMPERATURE)
+    display.apply_normal_theme()
+    display.set_text("title", "")
+    display.set_text("value", "")
+    display.set_text("unit", "")
+    display.set_text("status", "")
+    display.set_text("trend", "")
+    display.set_text("other", "")
+    display.set_text("back", "")
+    display.set_text("next", "")
+
+
+def exit_display_sleep_mode():
+    pass
+
 
 def update_window(window_list, measurement, max_list_len):
     window_list.append(measurement)
@@ -252,10 +270,6 @@ def calculate_avg_and_delta(window_list, fields):
     return avg_values, delta_values
 
 
-# ============================================================
-# Event Handling
-# ============================================================
-
 def handle_environment_event(event_type):
     if event_type == "smoke":
         print("Fenster schließt")
@@ -264,10 +278,6 @@ def handle_environment_event(event_type):
     elif event_type == "co2_critical":
         print("Fenster öffnen!")
 
-
-# ============================================================
-# Display Helpers
-# ============================================================
 
 DISPLAY_PAGES = [
     {"name": "temperature", "page_id": DisplayManager.PAGE_TEMPERATURE},
@@ -337,19 +347,17 @@ def get_priority_critical_page_name(page_data):
     return None
 
 
-# ============================================================
-# Measurement Source Helper
-# ============================================================
-
 def get_measurement(loop_count):
     if TEST_MODE:
         return get_test_measurement(loop_count, ACTIVE_TEST_SCENARIO)
     return build_measurement(bus, SEN55_ADDR, SCD41_ADDR)
 
 
-# ============================================================
-# Main
-# ============================================================
+def cooldown_expired(last_timestamp, cooldown_seconds):
+    if last_timestamp is None:
+        return True
+    return (time.time() - last_timestamp) >= cooldown_seconds
+
 
 bus.i2c_rdwr(i2c_msg.write(SEN55_ADDR, [0x00, 0x21]))
 print("SEN55 Messung gestartet...")
@@ -363,6 +371,13 @@ last_smoke_state = "CLEAR"
 last_co2_state = "GOOD"
 last_priority_page_name = None
 loop_count = 0
+
+last_co2_event_time = {
+    "VENTILATE": None,
+    "CRITICAL": None,
+}
+
+last_voc_event_time = None
 
 analysis_fields = [
     "pm1_0",
@@ -396,6 +411,7 @@ alert_states = {
 current_page_index = 0
 last_page_change_time = time.time()
 last_rendered_page_name = None
+display_sleep_active = False
 
 try:
     while True:
@@ -407,12 +423,7 @@ try:
         co2_score = 0
         co2_criteria = {}
 
-        touch_event = display.read_touch_event()
-        navigation_action = display.interpret_navigation_event(
-            touch_event,
-            DISPLAY_BACK_COMPONENT_ID,
-            DISPLAY_NEXT_COMPONENT_ID
-        )
+        now_dt = datetime.now()
 
         measurement = get_measurement(loop_count)
 
@@ -420,6 +431,29 @@ try:
             print("Noch keine fertigen Daten")
             time.sleep(REFRESH_RATE)
             continue
+
+        should_sleep_display = is_display_sleep_time(now_dt)
+
+        if should_sleep_display and not display_sleep_active and DISPLAY_ENABLED:
+            enter_display_sleep_mode()
+            display_sleep_active = True
+            last_rendered_page_name = None
+
+        elif not should_sleep_display and display_sleep_active and DISPLAY_ENABLED:
+            exit_display_sleep_mode()
+            display_sleep_active = False
+            last_rendered_page_name = None
+            last_page_change_time = time.time()
+
+        if not display_sleep_active and DISPLAY_ENABLED:
+            touch_event = display.read_touch_event()
+            navigation_action = display.interpret_navigation_event(
+                touch_event,
+                DISPLAY_BACK_COMPONENT_ID,
+                DISPLAY_NEXT_COMPONENT_ID
+            )
+        else:
+            navigation_action = None
 
         loop_count += 1
 
@@ -467,41 +501,61 @@ try:
                     LOG_TRIM_TARGET_RATIO
                 )
 
-            co2_issue_started = (
-                last_co2_state not in ["VENTILATE", "CRITICAL"] and
-                co2_state in ["VENTILATE", "CRITICAL"]
-            )
-
-            if co2_issue_started and LOGGING_ENABLED:
-                log_pre_co2_window(
-                    long_window,
-                    co2_state,
-                    co2_score,
-                    PRE_TRIGGER_LEN,
-                    MAX_LOG_FILE_SIZE_MB,
-                    LOG_TRIM_TARGET_RATIO
-                )
-
-            if co2_state in ["VENTILATE", "CRITICAL"] and LOGGING_ENABLED:
-                log_co2_event(
-                    measurement["timestamp"],
-                    co2_state,
-                    co2_score,
-                    measurement,
-                    short_avg,
-                    long_avg,
-                    short_delta,
-                    long_delta,
-                    co2_criteria,
-                    MAX_LOG_FILE_SIZE_MB,
-                    LOG_TRIM_TARGET_RATIO
-                )
+            if co2_state in ["VENTILATE", "CRITICAL"]:
+                if cooldown_expired(last_co2_event_time[co2_state], CO2_EVENT_COOLDOWN_SECONDS):
+                    if LOGGING_ENABLED:
+                        log_pre_co2_window(
+                            long_window,
+                            co2_state,
+                            co2_score,
+                            PRE_TRIGGER_LEN,
+                            MAX_LOG_FILE_SIZE_MB,
+                            LOG_TRIM_TARGET_RATIO
+                        )
+                        log_co2_event(
+                            measurement["timestamp"],
+                            co2_state,
+                            co2_score,
+                            measurement,
+                            short_avg,
+                            long_avg,
+                            short_delta,
+                            long_delta,
+                            co2_criteria,
+                            MAX_LOG_FILE_SIZE_MB,
+                            LOG_TRIM_TARGET_RATIO
+                        )
+                    last_co2_event_time[co2_state] = time.time()
 
             if last_co2_state != "VENTILATE" and co2_state == "VENTILATE":
                 handle_environment_event("co2_ventilate")
 
             if last_co2_state != "CRITICAL" and co2_state == "CRITICAL":
                 handle_environment_event("co2_critical")
+
+            voc_value = measurement.get("voc")
+            if voc_value is not None and voc_value >= VOC_LOG_THRESHOLD:
+                if cooldown_expired(last_voc_event_time, VOC_EVENT_COOLDOWN_SECONDS):
+                    if LOGGING_ENABLED:
+                        log_pre_voc_window(
+                            long_window,
+                            "VOC",
+                            voc_value,
+                            PRE_TRIGGER_LEN,
+                            MAX_LOG_FILE_SIZE_MB,
+                            LOG_TRIM_TARGET_RATIO
+                        )
+                        log_voc_event(
+                            measurement["timestamp"],
+                            measurement,
+                            short_avg,
+                            long_avg,
+                            short_delta,
+                            long_delta,
+                            MAX_LOG_FILE_SIZE_MB,
+                            LOG_TRIM_TARGET_RATIO
+                        )
+                    last_voc_event_time = time.time()
 
             page_data = build_display_page_data(
                 measurement,
@@ -522,44 +576,46 @@ try:
                 PUSHOVER_DEFAULT_PRIORITY,
             )
 
-            current_priority_page_name = get_priority_critical_page_name(page_data)
+            if not display_sleep_active:
+                current_priority_page_name = get_priority_critical_page_name(page_data)
 
-            force_render = False
-            critical_transition = False
+                force_render = False
+                critical_transition = False
 
-            if navigation_action == "back":
-                current_page_index = (current_page_index - 1) % len(DISPLAY_PAGES)
-                last_page_change_time = time.time()
-                force_render = True
+                if navigation_action == "back":
+                    current_page_index = (current_page_index - 1) % len(DISPLAY_PAGES)
+                    last_page_change_time = time.time()
+                    force_render = True
 
-            elif navigation_action == "next":
-                current_page_index = (current_page_index + 1) % len(DISPLAY_PAGES)
-                last_page_change_time = time.time()
-                force_render = True
+                elif navigation_action == "next":
+                    current_page_index = (current_page_index + 1) % len(DISPLAY_PAGES)
+                    last_page_change_time = time.time()
+                    force_render = True
 
-            elif (
-                current_priority_page_name is not None and
-                current_priority_page_name != last_priority_page_name
-            ):
-                current_page_index = get_page_index_by_name(current_priority_page_name)
-                last_page_change_time = time.time()
-                force_render = True
-                critical_transition = True
+                elif (
+                    current_priority_page_name is not None and
+                    current_priority_page_name != last_priority_page_name
+                ):
+                    current_page_index = get_page_index_by_name(current_priority_page_name)
+                    last_page_change_time = time.time()
+                    force_render = True
+                    critical_transition = True
 
-            elif (time.time() - last_page_change_time) >= DISPLAY_AUTO_PAGE_SECONDS:
-                current_page_index = (current_page_index + 1) % len(DISPLAY_PAGES)
-                last_page_change_time = time.time()
-                force_render = True
+                elif (time.time() - last_page_change_time) >= DISPLAY_AUTO_PAGE_SECONDS:
+                    current_page_index = (current_page_index + 1) % len(DISPLAY_PAGES)
+                    last_page_change_time = time.time()
+                    force_render = True
 
-            page_name = DISPLAY_PAGES[current_page_index]["name"]
+                page_name = DISPLAY_PAGES[current_page_index]["name"]
 
-            if (force_render or page_name != last_rendered_page_name) and DISPLAY_ENABLED:
-                render_display_page(page_name, page_data, critical_transition=critical_transition)
-                last_rendered_page_name = page_name
+                if (force_render or page_name != last_rendered_page_name) and DISPLAY_ENABLED:
+                    render_display_page(page_name, page_data, critical_transition=critical_transition)
+                    last_rendered_page_name = page_name
 
-            maybe_handle_night_mode(datetime.now(), measurement, smoke_state, last_smoke_state)
+                last_priority_page_name = current_priority_page_name
 
-            last_priority_page_name = current_priority_page_name
+            maybe_handle_night_mode(now_dt, measurement, smoke_state, last_smoke_state)
+
             last_smoke_state = smoke_state
             last_co2_state = co2_state
 
