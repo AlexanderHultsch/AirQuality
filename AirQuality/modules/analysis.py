@@ -119,9 +119,9 @@ def analyze_smoke(measurement, long_avg, short_avg, long_delta, short_delta):
     voc_short_delta = short_delta.get("voc")
 
     pm_ratio = None
-    if pm2_5 is not None and pm10 := measurement.get("pm10"):
-        if pm10 > 0:
-            pm_ratio = round(pm2_5 / pm10, 2)
+    pm10 = measurement.get("pm10")
+    if pm2_5 is not None and pm10 is not None and pm10 > 0:
+        pm_ratio = round(pm2_5 / pm10, 2)
 
     pm_abs_suspicious = (
         (pm2_5 is not None and pm2_5 >= 6.0) or
