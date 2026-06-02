@@ -93,14 +93,31 @@ display = DisplayManager(port=DISPLAY_PORT, baudrate=DISPLAY_BAUDRATE, timeout=0
 night_stats = {
     "active": False,
     "date_label": None,
+
     "smoke_suspicious_count": 0,
     "smoke_critical_count": 0,
+
     "co2_min": None,
     "co2_max": None,
     "co2_sum": 0.0,
     "co2_count": 0,
     "seconds_above_threshold_1": 0,
     "seconds_above_threshold_2": 0,
+
+    "temperature_min": None,
+    "temperature_max": None,
+    "temperature_sum": 0.0,
+    "temperature_count": 0,
+
+    "humidity_min": None,
+    "humidity_max": None,
+    "humidity_sum": 0.0,
+    "humidity_count": 0,
+
+    "voc_min": None,
+    "voc_max": None,
+    "voc_sum": 0.0,
+    "voc_count": 0,
 }
 
 last_night_push_label = None
@@ -120,8 +137,10 @@ def get_night_label(now_dt):
 def reset_night_stats(now_dt):
     night_stats["active"] = True
     night_stats["date_label"] = get_night_label(now_dt)
+
     night_stats["smoke_suspicious_count"] = 0
     night_stats["smoke_critical_count"] = 0
+
     night_stats["co2_min"] = None
     night_stats["co2_max"] = None
     night_stats["co2_sum"] = 0.0
@@ -129,9 +148,27 @@ def reset_night_stats(now_dt):
     night_stats["seconds_above_threshold_1"] = 0
     night_stats["seconds_above_threshold_2"] = 0
 
+    night_stats["temperature_min"] = None
+    night_stats["temperature_max"] = None
+    night_stats["temperature_sum"] = 0.0
+    night_stats["temperature_count"] = 0
+
+    night_stats["humidity_min"] = None
+    night_stats["humidity_max"] = None
+    night_stats["humidity_sum"] = 0.0
+    night_stats["humidity_count"] = 0
+
+    night_stats["voc_min"] = None
+    night_stats["voc_max"] = None
+    night_stats["voc_sum"] = 0.0
+    night_stats["voc_count"] = 0
+
 
 def update_night_stats(measurement):
     co2_value = measurement.get("co2")
+    temperature_value = measurement.get("sen55_temperature")
+    humidity_value = measurement.get("sen55_humidity")
+    voc_value = measurement.get("voc")
 
     if co2_value is not None:
         if night_stats["co2_min"] is None or co2_value < night_stats["co2_min"]:
@@ -149,6 +186,36 @@ def update_night_stats(measurement):
         if co2_value > CO2_MINUTES_THRESHOLD_2:
             night_stats["seconds_above_threshold_2"] += REFRESH_RATE
 
+    if temperature_value is not None:
+        if night_stats["temperature_min"] is None or temperature_value < night_stats["temperature_min"]:
+            night_stats["temperature_min"] = temperature_value
+
+        if night_stats["temperature_max"] is None or temperature_value > night_stats["temperature_max"]:
+            night_stats["temperature_max"] = temperature_value
+
+        night_stats["temperature_sum"] += temperature_value
+        night_stats["temperature_count"] += 1
+
+    if humidity_value is not None:
+        if night_stats["humidity_min"] is None or humidity_value < night_stats["humidity_min"]:
+            night_stats["humidity_min"] = humidity_value
+
+        if night_stats["humidity_max"] is None or humidity_value > night_stats["humidity_max"]:
+            night_stats["humidity_max"] = humidity_value
+
+        night_stats["humidity_sum"] += humidity_value
+        night_stats["humidity_count"] += 1
+
+    if voc_value is not None:
+        if night_stats["voc_min"] is None or voc_value < night_stats["voc_min"]:
+            night_stats["voc_min"] = voc_value
+
+        if night_stats["voc_max"] is None or voc_value > night_stats["voc_max"]:
+            night_stats["voc_max"] = voc_value
+
+        night_stats["voc_sum"] += voc_value
+        night_stats["voc_count"] += 1
+
 
 def count_night_smoke_transition(last_smoke_state, smoke_state):
     if last_smoke_state != "SUSPICIOUS" and smoke_state == "SUSPICIOUS":
@@ -159,26 +226,60 @@ def count_night_smoke_transition(last_smoke_state, smoke_state):
 
 
 def build_night_summary_message():
-    if night_stats["co2_count"] > 0:
-        avg_co2 = round(night_stats["co2_sum"] / night_stats["co2_count"], 1)
-    else:
-        avg_co2 = "n/a"
+    def avg_or_na(sum_value, count_value):
+        if count_value > 0:
+            return round(sum_value / count_value, 1)
+        return "n/a"
 
-    min_co2 = night_stats["co2_min"] if night_stats["co2_min"] is not None else "n/a"
-    max_co2 = night_stats["co2_max"] if night_stats["co2_max"] is not None else "n/a"
+    def value_or_na(value):
+        return value if value is not None else "n/a"
+
+    avg_co2 = avg_or_na(night_stats["co2_sum"], night_stats["co2_count"])
+    min_co2 = value_or_na(night_stats["co2_min"])
+    max_co2 = value_or_na(night_stats["co2_max"])
+
+    avg_temperature = avg_or_na(night_stats["temperature_sum"], night_stats["temperature_count"])
+    min_temperature = value_or_na(night_stats["temperature_min"])
+    max_temperature = value_or_na(night_stats["temperature_max"])
+
+    avg_humidity = avg_or_na(night_stats["humidity_sum"], night_stats["humidity_count"])
+    min_humidity = value_or_na(night_stats["humidity_min"])
+    max_humidity = value_or_na(night_stats["humidity_max"])
+
+    avg_voc = avg_or_na(night_stats["voc_sum"], night_stats["voc_count"])
+    min_voc = value_or_na(night_stats["voc_min"])
+    max_voc = value_or_na(night_stats["voc_max"])
 
     minutes_above_1 = round(night_stats["seconds_above_threshold_1"] / 60)
     minutes_above_2 = round(night_stats["seconds_above_threshold_2"] / 60)
 
     title = f"Nachtbericht {night_stats['date_label']}"
     message = (
-        f"Smoke suspicion: {night_stats['smoke_suspicious_count']}\n"
-        f"Smoke critical: {night_stats['smoke_critical_count']}\n"
-        f"CO2 min: {min_co2}\n"
-        f"CO2 max: {max_co2}\n"
-        f"CO2 avg: {avg_co2}\n"
-        f"Min > {CO2_MINUTES_THRESHOLD_1}: {minutes_above_1}\n"
-        f"Min > {CO2_MINUTES_THRESHOLD_2}: {minutes_above_2}"
+        f"CO2\n"
+        f"Max: {max_co2} ppm\n"
+        f"Min: {min_co2} ppm\n"
+        f"Avg: {avg_co2} ppm\n"
+        f"> {CO2_MINUTES_THRESHOLD_1}: {minutes_above_1} min\n"
+        f"> {CO2_MINUTES_THRESHOLD_2}: {minutes_above_2} min\n"
+        f"---\n"
+        f"Temperature\n"
+        f"Max: {max_temperature} C\n"
+        f"Min: {min_temperature} C\n"
+        f"Avg: {avg_temperature} C\n"
+        f"---\n"
+        f"Humidity\n"
+        f"Max: {max_humidity} %\n"
+        f"Min: {min_humidity} %\n"
+        f"Avg: {avg_humidity} %\n"
+        f"---\n"
+        f"VOC\n"
+        f"Max: {max_voc}\n"
+        f"Min: {min_voc}\n"
+        f"Avg: {avg_voc}\n"
+        f"---\n"
+        f"Smoke\n"
+        f"Suspicious: {night_stats['smoke_suspicious_count']}\n"
+        f"Critical: {night_stats['smoke_critical_count']}"
     )
     return title, message
 
@@ -539,7 +640,6 @@ try:
                     if LOGGING_ENABLED:
                         log_pre_voc_window(
                             long_window,
-                            "VOC",
                             voc_value,
                             PRE_TRIGGER_LEN,
                             MAX_LOG_FILE_SIZE_MB,

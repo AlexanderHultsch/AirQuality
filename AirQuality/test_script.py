@@ -1,10 +1,11 @@
 from datetime import datetime
 
 TEST_MODE = False
-ACTIVE_TEST_SCENARIO = "normal_operation"
+
+ACTIVE_TEST_SCENARIO = "voc_critical_after_5_loops"
 
 TEST_ENABLE_DISPLAY = True
-TEST_ENABLE_PUSHOVER = False
+TEST_ENABLE_PUSHOVER = True
 TEST_ENABLE_LOGGING = True
 
 
@@ -106,6 +107,21 @@ def co2_critical_measurement():
         scd41_humidity=45.0,
     )
 
+def voc_critical_measurement():
+    return _measurement(
+        pm1_0=2.0,
+        pm2_5=3.0,
+        pm4_0=4.0,
+        pm10=5.0,
+        sen55_humidity=44.0,
+        sen55_temperature=22.8,
+        voc=450.0,
+        nox=65.0,
+        co2=700,
+        scd41_temperature=22.7,
+        scd41_humidity=44.5,
+        pi5_temp=50.0,
+    )
 
 def _scenario_window(loop_count, start_loop, critical_len=3, recovery_len=3):
     if loop_count < start_loop:
@@ -156,6 +172,14 @@ def get_test_measurement(loop_count, scenario_name):
             return co2_ventilate_measurement()
         if loop_count < 19:
             return co2_critical_measurement()
+        return normal_measurement()
+    
+    if scenario_name == "voc_critical_after_5_loops":
+        phase = _scenario_window(loop_count, start_loop=5, critical_len=4, recovery_len=3)
+        if phase == "critical":
+            return voc_critical_measurement()
+        if phase == "recovery":
+            return normal_measurement()
         return normal_measurement()
 
     return normal_measurement()
