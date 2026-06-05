@@ -2,7 +2,7 @@ from datetime import datetime
 
 TEST_MODE = False
 
-ACTIVE_TEST_SCENARIO = "voc_critical_after_5_loops"
+ACTIVE_TEST_SCENARIO = "smoke_then_co2"
 
 TEST_ENABLE_DISPLAY = True
 TEST_ENABLE_PUSHOVER = True

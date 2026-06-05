@@ -12,7 +12,7 @@ from datetime import datetime, time as dt_time
 from smbus2 import SMBus, i2c_msg
 from display_manager import DisplayManager
 from modules.sensor_reader import build_measurement, start_scd41_periodic_measurement
-from modules.analysis import analyze_smoke, analyze_CO2, build_display_page_data
+from modules.analysis import create_smoke_detector, analyze_CO2, build_display_page_data
 from modules.logging_utils import (
     log_pre_smoke_window,
     log_smoke_event,
@@ -89,6 +89,7 @@ short_window = []
 
 bus = SMBus(BUS_ID)
 display = DisplayManager(port=DISPLAY_PORT, baudrate=DISPLAY_BAUDRATE, timeout=0.1)
+smoke_detector = create_smoke_detector()
 
 night_stats = {
     "active": False,
@@ -567,7 +568,7 @@ try:
         short_avg, short_delta = calculate_avg_and_delta(short_window, analysis_fields)
 
         if long_avg is not None and short_avg is not None:
-            smoke_state, smoke_score, smoke_criteria = analyze_smoke(
+            smoke_state, smoke_score, smoke_criteria = smoke_detector.update(
                 measurement, long_avg, short_avg, long_delta, short_delta
             )
 
