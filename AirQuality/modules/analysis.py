@@ -412,33 +412,6 @@ def create_smoke_detector():
     return SmokeDetector()
 
 
-def analyze_smoke(measurement, long_avg, short_avg, long_delta, short_delta):
-    features = _build_smoke_features(
-        measurement, long_avg, short_avg, long_delta, short_delta
-    )
-
-    suspicious_score = features["suspicious_score"]
-    smoke_score = features["smoke_score"]
-
-    if features["strong_smoke"] or smoke_score >= 7:
-        state = "SMOKE"
-        score = smoke_score
-    elif features["probable_smoke"] or suspicious_score >= 5:
-        state = "SUSPICIOUS"
-        score = suspicious_score
-    else:
-        state = "CLEAR"
-        score = max(suspicious_score, smoke_score)
-
-    criteria = dict(features)
-    criteria["state"] = state
-    criteria["suspicious_hold"] = 0
-    criteria["smoke_hold"] = 0
-    criteria["clear_hold"] = 0
-
-    return state, score, criteria
-
-
 def analyze_CO2(measurement, long_avg, short_avg, long_delta, short_delta):
     co2 = measurement.get("co2")
     co2_long_delta = long_delta.get("co2")

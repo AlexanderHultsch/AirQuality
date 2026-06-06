@@ -15,10 +15,6 @@ _last_scd41_data = {
 
 
 def read_sen55_data(bus, sen55_addr):
-    """
-    Reads data from the existing PM / VOC / NOX sensor.
-    Returns a dict or None if data is not ready.
-    """
     bus.i2c_rdwr(i2c_msg.write(sen55_addr, [0x02, 0x02]))
     time.sleep(0.01)
 
@@ -87,10 +83,6 @@ def _scd41_read_words(bus, scd41_addr, command, word_count):
 
 
 def start_scd41_periodic_measurement(bus, scd41_addr):
-    """
-    Starts periodic measurement mode on the SCD41.
-    If the sensor is already running, continue without aborting.
-    """
     try:
         _scd41_write_command(bus, scd41_addr, 0x21B1)
         time.sleep(0.05)
@@ -102,11 +94,6 @@ def start_scd41_periodic_measurement(bus, scd41_addr):
 
 
 def read_scd41_data(bus, scd41_addr):
-    """
-    Reads SCD41 values.
-    Important: real sensor readout happens at most every 5 seconds.
-    Between reads, the last valid values are returned.
-    """
     global _last_scd41_read_time, _last_scd41_data
 
     now = time.time()
@@ -136,11 +123,8 @@ def read_scd41_data(bus, scd41_addr):
         print("SCD41 Lesefehler:", e)
         return dict(_last_scd41_data)
 
+
 def read_pi5_temp():
-    """
-    Reads Raspberry Pi SoC temperature via vcgencmd.
-    Returns a float or None on error.
-    """
     try:
         result = subprocess.run(
             ["vcgencmd", "measure_temp"],
@@ -161,10 +145,6 @@ def read_pi5_temp():
 
 
 def build_measurement(bus, sen55_addr, scd41_addr):
-    """
-    Reads all available sensors and returns one merged measurement dict.
-    Returns None if the primary sensor has no new data yet.
-    """
     sen55_data = read_sen55_data(bus, sen55_addr)
     if sen55_data is None:
         return None
