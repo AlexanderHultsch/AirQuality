@@ -12,7 +12,11 @@ from datetime import datetime, time as dt_time
 from smbus2 import SMBus, i2c_msg
 from display_manager import DisplayManager
 from modules.sensor_reader import build_measurement, start_scd41_periodic_measurement
-from modules.analysis import create_smoke_detector, analyze_CO2, build_display_page_data
+from modules.analysis import (
+    analyze_CO2,
+    build_display_page_data,
+    create_smoke_detector,
+)
 from modules.logging_utils import (
     log_pre_smoke_window,
     log_smoke_event,
@@ -34,11 +38,7 @@ from test_script import (
     get_test_measurement,
 )
 
-# ============================================================
-# Configuration
-# ============================================================
-
-REFRESH_RATE = 1  # seconds
+REFRESH_RATE = 1
 PRE_TRIGGER_SECONDS = 30
 PRE_TRIGGER_LEN = max(1, math.ceil(PRE_TRIGGER_SECONDS / REFRESH_RATE))
 
@@ -73,7 +73,6 @@ DISPLAY_ENABLED = True if not TEST_MODE else TEST_ENABLE_DISPLAY
 PUSHOVER_ENABLED = True if not TEST_MODE else TEST_ENABLE_PUSHOVER
 LOGGING_ENABLED = True if not TEST_MODE else TEST_ENABLE_LOGGING
 
-# Night tracking
 NIGHT_START = dt_time(22, 0)
 NIGHT_END = dt_time(7, 0)
 
@@ -89,32 +88,26 @@ short_window = []
 
 bus = SMBus(BUS_ID)
 display = DisplayManager(port=DISPLAY_PORT, baudrate=DISPLAY_BAUDRATE, timeout=0.1)
-smoke_detector = create_smoke_detector()
 
 night_stats = {
     "active": False,
     "date_label": None,
-
     "smoke_suspicious_count": 0,
     "smoke_critical_count": 0,
-
     "co2_min": None,
     "co2_max": None,
     "co2_sum": 0.0,
     "co2_count": 0,
     "seconds_above_threshold_1": 0,
     "seconds_above_threshold_2": 0,
-
     "temperature_min": None,
     "temperature_max": None,
     "temperature_sum": 0.0,
     "temperature_count": 0,
-
     "humidity_min": None,
     "humidity_max": None,
     "humidity_sum": 0.0,
     "humidity_count": 0,
-
     "voc_min": None,
     "voc_max": None,
     "voc_sum": 0.0,
@@ -130,8 +123,6 @@ def is_night_time(now_dt):
 
 
 def get_night_label(now_dt):
-    if now_dt.time() >= NIGHT_START:
-        return now_dt.strftime("%Y-%m-%d")
     return now_dt.strftime("%Y-%m-%d")
 
 
@@ -174,7 +165,6 @@ def update_night_stats(measurement):
     if co2_value is not None:
         if night_stats["co2_min"] is None or co2_value < night_stats["co2_min"]:
             night_stats["co2_min"] = co2_value
-
         if night_stats["co2_max"] is None or co2_value > night_stats["co2_max"]:
             night_stats["co2_max"] = co2_value
 
@@ -183,14 +173,12 @@ def update_night_stats(measurement):
 
         if co2_value > CO2_MINUTES_THRESHOLD_1:
             night_stats["seconds_above_threshold_1"] += REFRESH_RATE
-
         if co2_value > CO2_MINUTES_THRESHOLD_2:
             night_stats["seconds_above_threshold_2"] += REFRESH_RATE
 
     if temperature_value is not None:
         if night_stats["temperature_min"] is None or temperature_value < night_stats["temperature_min"]:
             night_stats["temperature_min"] = temperature_value
-
         if night_stats["temperature_max"] is None or temperature_value > night_stats["temperature_max"]:
             night_stats["temperature_max"] = temperature_value
 
@@ -200,7 +188,6 @@ def update_night_stats(measurement):
     if humidity_value is not None:
         if night_stats["humidity_min"] is None or humidity_value < night_stats["humidity_min"]:
             night_stats["humidity_min"] = humidity_value
-
         if night_stats["humidity_max"] is None or humidity_value > night_stats["humidity_max"]:
             night_stats["humidity_max"] = humidity_value
 
@@ -210,7 +197,6 @@ def update_night_stats(measurement):
     if voc_value is not None:
         if night_stats["voc_min"] is None or voc_value < night_stats["voc_min"]:
             night_stats["voc_min"] = voc_value
-
         if night_stats["voc_max"] is None or voc_value > night_stats["voc_max"]:
             night_stats["voc_max"] = voc_value
 
@@ -514,6 +500,8 @@ current_page_index = 0
 last_page_change_time = time.time()
 last_rendered_page_name = None
 display_sleep_active = False
+
+smoke_detector = create_smoke_detector()
 
 try:
     while True:
