@@ -114,21 +114,25 @@ def _rel_above(current, baseline, min_baseline=0.5):
 def _build_smoke_features(measurement, long_avg, short_avg, long_delta, short_delta):
     pm1_0 = measurement.get("pm1_0")
     pm2_5 = measurement.get("pm2_5")
+    pm4_0 = measurement.get("pm4_0")
     pm10 = measurement.get("pm10")
     voc = measurement.get("voc")
     co2 = measurement.get("co2")
 
     long_pm1_0 = long_avg.get("pm1_0")
     long_pm2_5 = long_avg.get("pm2_5")
+    long_pm10 = long_avg.get("pm10")
     long_voc = long_avg.get("voc")
 
     pm1_0_long_delta = long_delta.get("pm1_0")
     pm2_5_long_delta = long_delta.get("pm2_5")
+    pm10_long_delta = long_delta.get("pm10")
     voc_long_delta = long_delta.get("voc")
     co2_long_delta = long_delta.get("co2")
 
     pm1_0_short_delta = short_delta.get("pm1_0")
     pm2_5_short_delta = short_delta.get("pm2_5")
+    pm10_short_delta = short_delta.get("pm10")
     voc_short_delta = short_delta.get("voc")
 
     pm1_vs_pm25_ratio = _ratio(pm1_0, pm2_5)
@@ -136,82 +140,95 @@ def _build_smoke_features(measurement, long_avg, short_avg, long_delta, short_de
 
     rel_pm1_long = _rel_above(pm1_0, long_pm1_0)
     rel_pm25_long = _rel_above(pm2_5, long_pm2_5)
+    rel_pm10_long = _rel_above(pm10, long_pm10)
     rel_voc_long = _rel_above(voc, long_voc, min_baseline=50.0)
 
+    baseline_low_particles = (
+        long_pm2_5 is not None and long_pm2_5 <= 4.0 and
+        long_pm10 is not None and long_pm10 <= 5.0
+    )
+
     pm_present_suspicious = (
-        (pm1_0 is not None and pm1_0 >= 4.0) or
-        (pm2_5 is not None and pm2_5 >= 5.0)
+        (pm1_0 is not None and pm1_0 >= 8.0) or
+        (pm2_5 is not None and pm2_5 >= 10.0) or
+        (pm10 is not None and pm10 >= 12.0)
     )
 
     pm_present_smoke = (
-        (pm1_0 is not None and pm1_0 >= 7.0) or
-        (pm2_5 is not None and pm2_5 >= 9.0)
+        (pm1_0 is not None and pm1_0 >= 20.0) or
+        (pm2_5 is not None and pm2_5 >= 25.0) or
+        (pm10 is not None and pm10 >= 30.0)
     )
 
     pm_long_rise_suspicious = (
-        (pm1_0_long_delta is not None and pm1_0_long_delta >= 1.8) or
-        (pm2_5_long_delta is not None and pm2_5_long_delta >= 2.2)
+        (pm1_0_long_delta is not None and pm1_0_long_delta >= 6.0) or
+        (pm2_5_long_delta is not None and pm2_5_long_delta >= 8.0) or
+        (pm10_long_delta is not None and pm10_long_delta >= 10.0)
     )
 
     pm_long_rise_smoke = (
-        (pm1_0_long_delta is not None and pm1_0_long_delta >= 3.5) or
-        (pm2_5_long_delta is not None and pm2_5_long_delta >= 4.5)
+        (pm1_0_long_delta is not None and pm1_0_long_delta >= 15.0) or
+        (pm2_5_long_delta is not None and pm2_5_long_delta >= 20.0) or
+        (pm10_long_delta is not None and pm10_long_delta >= 25.0)
     )
 
     pm_short_rise_suspicious = (
-        (pm1_0_short_delta is not None and pm1_0_short_delta >= 1.2) or
-        (pm2_5_short_delta is not None and pm2_5_short_delta >= 1.5)
+        (pm1_0_short_delta is not None and pm1_0_short_delta >= 5.0) or
+        (pm2_5_short_delta is not None and pm2_5_short_delta >= 6.0) or
+        (pm10_short_delta is not None and pm10_short_delta >= 8.0)
     )
 
     pm_short_rise_smoke = (
-        (pm1_0_short_delta is not None and pm1_0_short_delta >= 2.5) or
-        (pm2_5_short_delta is not None and pm2_5_short_delta >= 3.0)
+        (pm1_0_short_delta is not None and pm1_0_short_delta >= 12.0) or
+        (pm2_5_short_delta is not None and pm2_5_short_delta >= 15.0) or
+        (pm10_short_delta is not None and pm10_short_delta >= 18.0)
     )
 
     pm_relative_suspicious = (
-        (rel_pm1_long is not None and rel_pm1_long >= 1.6) or
-        (rel_pm25_long is not None and rel_pm25_long >= 1.6)
+        (rel_pm1_long is not None and rel_pm1_long >= 2.2) or
+        (rel_pm25_long is not None and rel_pm25_long >= 2.2) or
+        (rel_pm10_long is not None and rel_pm10_long >= 2.0)
     )
 
     pm_relative_smoke = (
-        (rel_pm1_long is not None and rel_pm1_long >= 2.0) or
-        (rel_pm25_long is not None and rel_pm25_long >= 2.0)
+        (rel_pm1_long is not None and rel_pm1_long >= 4.0) or
+        (rel_pm25_long is not None and rel_pm25_long >= 4.0) or
+        (rel_pm10_long is not None and rel_pm10_long >= 3.5)
     )
 
     fine_particle_profile = (
-        (pm1_vs_pm25_ratio is not None and pm1_vs_pm25_ratio >= 0.65) or
-        (pm25_vs_pm10_ratio is not None and pm25_vs_pm10_ratio >= 0.70)
-    )
-
-    very_fine_particle_profile = (
-        (pm1_vs_pm25_ratio is not None and pm1_vs_pm25_ratio >= 0.75) or
+        (pm1_vs_pm25_ratio is not None and pm1_vs_pm25_ratio >= 0.72) or
         (pm25_vs_pm10_ratio is not None and pm25_vs_pm10_ratio >= 0.80)
     )
 
+    very_fine_particle_profile = (
+        (pm1_vs_pm25_ratio is not None and pm1_vs_pm25_ratio >= 0.82) or
+        (pm25_vs_pm10_ratio is not None and pm25_vs_pm10_ratio >= 0.90)
+    )
+
     voc_support_light = (
-        (voc is not None and voc >= 140) or
-        (voc_long_delta is not None and voc_long_delta >= 20) or
-        (voc_short_delta is not None and voc_short_delta >= 12) or
-        (rel_voc_long is not None and rel_voc_long >= 1.12 and voc is not None and voc >= 110)
+        (voc_long_delta is not None and voc_long_delta >= 25) or
+        (voc_short_delta is not None and voc_short_delta >= 15) or
+        (rel_voc_long is not None and rel_voc_long >= 1.15 and voc is not None and voc >= 140)
     )
 
     voc_support_strong = (
-        (voc is not None and voc >= 180) or
-        (voc_long_delta is not None and voc_long_delta >= 35) or
-        (voc_short_delta is not None and voc_short_delta >= 20) or
-        (rel_voc_long is not None and rel_voc_long >= 1.20 and voc is not None and voc >= 130)
+        (voc_long_delta is not None and voc_long_delta >= 50) or
+        (voc_short_delta is not None and voc_short_delta >= 30) or
+        (rel_voc_long is not None and rel_voc_long >= 1.30 and voc is not None and voc >= 180)
     )
 
     voc_without_pm = (
-        voc_support_strong and
+        (voc is not None and voc >= 180) and
         not pm_present_suspicious and
         not pm_long_rise_suspicious and
-        not pm_short_rise_suspicious
+        not pm_short_rise_suspicious and
+        not pm_relative_suspicious
     )
 
     coarse_particle_hint = False
     if pm10 is not None and pm2_5 is not None and pm10 > 0:
-        if (pm2_5 / pm10) < 0.45:
+        if (pm2_5 / pm10) < 0.55:
             coarse_particle_hint = True
 
     co2_only_hint = (
@@ -219,6 +236,19 @@ def _build_smoke_features(measurement, long_avg, short_avg, long_delta, short_de
         (co2_long_delta is not None and co2_long_delta >= 80) and
         not pm_present_suspicious and
         not pm_long_rise_suspicious
+    )
+
+    sustained_mid_pm = (
+        pm2_5 is not None and pm2_5 >= 12.0 and
+        long_pm2_5 is not None and long_pm2_5 >= 8.0
+    )
+
+    sudden_clean_air_spike = (
+        baseline_low_particles and
+        (
+            (pm2_5 is not None and pm2_5 >= 10.0) or
+            (pm1_0 is not None and pm1_0 >= 8.0)
+        )
     )
 
     suspicious_score = 0
@@ -229,12 +259,14 @@ def _build_smoke_features(measurement, long_avg, short_avg, long_delta, short_de
     if pm_long_rise_suspicious:
         suspicious_score += 2
     if pm_short_rise_suspicious:
-        suspicious_score += 3
+        suspicious_score += 2
     if pm_relative_suspicious:
         suspicious_score += 2
     if fine_particle_profile:
         suspicious_score += 1
-    if voc_support_light:
+    if sustained_mid_pm:
+        suspicious_score += 1
+    if voc_support_light and pm_present_suspicious:
         suspicious_score += 1
 
     if pm_present_smoke:
@@ -247,17 +279,19 @@ def _build_smoke_features(measurement, long_avg, short_avg, long_delta, short_de
         smoke_score += 2
     if very_fine_particle_profile:
         smoke_score += 1
-    if voc_support_strong:
+    if sustained_mid_pm and pm_short_rise_suspicious:
+        smoke_score += 1
+    if voc_support_strong and pm_present_suspicious:
         smoke_score += 1
 
+    if sudden_clean_air_spike:
+        suspicious_score -= 1
     if voc_without_pm:
-        suspicious_score -= 2
-        smoke_score -= 4
-
+        suspicious_score -= 3
+        smoke_score -= 5
     if coarse_particle_hint:
         suspicious_score -= 1
         smoke_score -= 2
-
     if co2_only_hint:
         suspicious_score -= 1
         smoke_score -= 2
@@ -267,22 +301,27 @@ def _build_smoke_features(measurement, long_avg, short_avg, long_delta, short_de
 
     probable_smoke = (
         pm_present_suspicious and
-        (pm_long_rise_suspicious or pm_short_rise_suspicious) and
-        (pm_relative_suspicious or fine_particle_profile or voc_support_light)
+        (
+            (pm_long_rise_suspicious and pm_short_rise_suspicious) or
+            (pm_relative_suspicious and pm_short_rise_suspicious)
+        ) and
+        (fine_particle_profile or sustained_mid_pm or voc_support_light)
     )
 
     strong_smoke = (
         pm_present_smoke and
         (pm_long_rise_smoke or pm_short_rise_smoke or pm_relative_smoke) and
-        (very_fine_particle_profile or voc_support_light or pm_long_rise_smoke)
+        (very_fine_particle_profile or sustained_mid_pm or voc_support_light)
     )
 
     falling_back_to_clear = (
-        suspicious_score <= 1 and
-        smoke_score <= 1 and
-        not pm_present_suspicious and
+        (pm2_5 is None or pm2_5 < 8.0) and
+        (pm1_0 is None or pm1_0 < 6.0) and
+        (pm10 is None or pm10 < 10.0) and
         not pm_long_rise_suspicious and
-        not pm_short_rise_suspicious
+        not pm_short_rise_suspicious and
+        suspicious_score <= 1 and
+        smoke_score <= 1
     )
 
     return {
@@ -290,7 +329,9 @@ def _build_smoke_features(measurement, long_avg, short_avg, long_delta, short_de
         "pm25_vs_pm10_ratio": pm25_vs_pm10_ratio,
         "rel_pm1_long": rel_pm1_long,
         "rel_pm25_long": rel_pm25_long,
+        "rel_pm10_long": rel_pm10_long,
         "rel_voc_long": rel_voc_long,
+        "baseline_low_particles": baseline_low_particles,
         "pm_present_suspicious": pm_present_suspicious,
         "pm_present_smoke": pm_present_smoke,
         "pm_long_rise_suspicious": pm_long_rise_suspicious,
@@ -306,6 +347,8 @@ def _build_smoke_features(measurement, long_avg, short_avg, long_delta, short_de
         "voc_without_pm": voc_without_pm,
         "coarse_particle_hint": coarse_particle_hint,
         "co2_only_hint": co2_only_hint,
+        "sustained_mid_pm": sustained_mid_pm,
+        "sudden_clean_air_spike": sudden_clean_air_spike,
         "suspicious_score": suspicious_score,
         "smoke_score": smoke_score,
         "probable_smoke": probable_smoke,
@@ -321,10 +364,10 @@ class SmokeDetector:
         self.smoke_hold = 0
         self.clear_hold = 0
 
-        self.suspicious_enter_count = 2
-        self.smoke_enter_count = 3
-        self.clear_exit_count = 8
-        self.smoke_exit_count = 4
+        self.suspicious_enter_count = 3
+        self.smoke_enter_count = 4
+        self.clear_exit_count = 12
+        self.smoke_exit_count = 2
 
     def update(self, measurement, long_avg, short_avg, long_delta, short_delta):
         features = _build_smoke_features(
@@ -336,23 +379,24 @@ class SmokeDetector:
 
         suspicious_trigger = (
             features["probable_smoke"] or
-            suspicious_score >= 5 or
+            suspicious_score >= 6 or
             (
+                features["pm_present_suspicious"] and
                 features["pm_short_rise_suspicious"] and
-                features["pm_present_suspicious"]
+                features["pm_relative_suspicious"]
             )
         )
 
         smoke_trigger = (
             features["strong_smoke"] or
-            smoke_score >= 7 or
+            smoke_score >= 8 or
             (
                 features["pm_present_smoke"] and
                 (
                     features["pm_long_rise_smoke"] or
-                    features["pm_short_rise_smoke"] or
-                    features["pm_relative_smoke"]
-                )
+                    features["pm_short_rise_smoke"]
+                ) and
+                (features["very_fine_particle_profile"] or features["sustained_mid_pm"])
             )
         )
 
@@ -410,6 +454,33 @@ class SmokeDetector:
 
 def create_smoke_detector():
     return SmokeDetector()
+
+
+def analyze_smoke(measurement, long_avg, short_avg, long_delta, short_delta):
+    features = _build_smoke_features(
+        measurement, long_avg, short_avg, long_delta, short_delta
+    )
+
+    suspicious_score = features["suspicious_score"]
+    smoke_score = features["smoke_score"]
+
+    if features["strong_smoke"] or smoke_score >= 8:
+        state = "SMOKE"
+        score = smoke_score
+    elif features["probable_smoke"] or suspicious_score >= 6:
+        state = "SUSPICIOUS"
+        score = suspicious_score
+    else:
+        state = "CLEAR"
+        score = max(suspicious_score, smoke_score)
+
+    criteria = dict(features)
+    criteria["state"] = state
+    criteria["suspicious_hold"] = 0
+    criteria["smoke_hold"] = 0
+    criteria["clear_hold"] = 0
+
+    return state, score, criteria
 
 
 def analyze_CO2(measurement, long_avg, short_avg, long_delta, short_delta):
