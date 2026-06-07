@@ -9,10 +9,13 @@
 import math
 import time
 from datetime import datetime, time as dt_time
+
 from smbus2 import SMBus, i2c_msg
+
 from display_manager import DisplayManager
 from modules.sensor_reader import build_measurement, start_scd41_periodic_measurement
 from modules.analysis import (
+    analyze_smoke,
     analyze_CO2,
     build_display_page_data,
     create_smoke_detector,
