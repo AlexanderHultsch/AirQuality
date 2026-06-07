@@ -8,14 +8,17 @@
 
 import math
 import time
-from datetime import datetime, time as dt_time
+from datetime import datetime, timedelta, time as dt_time
 
-from smbus2 import SMBus, i2c_msg
+from smbus2 import SMBus
 
 from display_manager import DisplayManager
-from modules.sensor_reader import build_measurement, start_scd41_periodic_measurement
+from modules.sensor_reader import (
+    build_measurement,
+    start_scd41_periodic_measurement,
+    start_sen55_periodic_measurement,
+)
 from modules.analysis import (
-    analyze_smoke,
     analyze_CO2,
     build_display_page_data,
     create_smoke_detector,
@@ -89,8 +92,8 @@ VOC_EVENT_COOLDOWN_SECONDS = 10 * 60
 long_window = []
 short_window = []
 
-bus = SMBus(BUS_ID)
-display = DisplayManager(port=DISPLAY_PORT, baudrate=DISPLAY_BAUDRATE, timeout=0.1)
+bus = None
+display = None
 
 night_stats = {
     "active": False,
@@ -126,6 +129,8 @@ def is_night_time(now_dt):
 
 
 def get_night_label(now_dt):
+    if now_dt.time() < NIGHT_END:
+        return (now_dt - timedelta(days=1)).strftime("%Y-%m-%d")
     return now_dt.strftime("%Y-%m-%d")
 
 
@@ -309,6 +314,8 @@ def is_display_sleep_time(now_dt):
 
 
 def enter_display_sleep_mode():
+    if not display:
+        return
     display.goto_page(DisplayManager.PAGE_TEMPERATURE)
     display.apply_normal_theme()
     display.set_text("title", "")
@@ -322,7 +329,11 @@ def enter_display_sleep_mode():
 
 
 def exit_display_sleep_mode():
-    pass
+    if not display:
+        return
+    display.apply_normal_theme()
+    display.set_text("back", "<")
+    display.set_text("next", ">")
 
 
 def update_window(window_list, measurement, max_list_len):
@@ -386,6 +397,9 @@ DISPLAY_PAGES = [
 
 
 def render_display_page(page_name, page_data, critical_transition=False):
+    if not display:
+        return
+
     content = page_data[page_name]
 
     if page_name == "temperature":
@@ -441,7 +455,15 @@ def get_priority_critical_page_name(page_data):
 def get_measurement(loop_count):
     if TEST_MODE:
         return get_test_measurement(loop_count, ACTIVE_TEST_SCENARIO)
-    return build_measurement(bus, SEN55_ADDR, SCD41_ADDR)
+
+    if bus is None:
+        return None
+
+    try:
+        return build_measurement(bus, SEN55_ADDR, SCD41_ADDR)
+    except Exception as e:
+        print("Messfehler:", e)
+        return None
 
 
 def cooldown_expired(last_timestamp, cooldown_seconds):
@@ -450,12 +472,30 @@ def cooldown_expired(last_timestamp, cooldown_seconds):
     return (time.time() - last_timestamp) >= cooldown_seconds
 
 
-bus.i2c_rdwr(i2c_msg.write(SEN55_ADDR, [0x00, 0x21]))
-print("SEN55 Messung gestartet...")
+def init_runtime():
+    global bus, display, DISPLAY_ENABLED
 
-if not TEST_MODE:
-    start_scd41_periodic_measurement(bus, SCD41_ADDR)
+    if not TEST_MODE:
+        try:
+            bus = SMBus(BUS_ID)
+        except Exception as e:
+            print("I2C Bus konnte nicht geöffnet werden:", e)
+            bus = None
 
+    if DISPLAY_ENABLED:
+        try:
+            display = DisplayManager(port=DISPLAY_PORT, baudrate=DISPLAY_BAUDRATE, timeout=0.1)
+        except Exception as e:
+            print("Display konnte nicht initialisiert werden:", e)
+            display = None
+            DISPLAY_ENABLED = False
+
+    if not TEST_MODE and bus is not None:
+        start_sen55_periodic_measurement(bus, SEN55_ADDR)
+        start_scd41_periodic_measurement(bus, SCD41_ADDR)
+
+
+init_runtime()
 time.sleep(1)
 
 last_smoke_state = "CLEAR"
@@ -538,7 +578,7 @@ try:
             last_rendered_page_name = None
             last_page_change_time = time.time()
 
-        if not display_sleep_active and DISPLAY_ENABLED:
+        if not display_sleep_active and DISPLAY_ENABLED and display:
             touch_event = display.read_touch_event()
             navigation_action = display.interpret_navigation_event(
                 touch_event,
@@ -668,7 +708,7 @@ try:
                 PUSHOVER_DEFAULT_PRIORITY,
             )
 
-            if not display_sleep_active:
+            if not display_sleep_active and DISPLAY_ENABLED and display:
                 current_priority_page_name = get_priority_critical_page_name(page_data)
 
                 force_render = False
@@ -700,7 +740,7 @@ try:
 
                 page_name = DISPLAY_PAGES[current_page_index]["name"]
 
-                if (force_render or page_name != last_rendered_page_name) and DISPLAY_ENABLED:
+                if force_render or page_name != last_rendered_page_name:
                     render_display_page(page_name, page_data, critical_transition=critical_transition)
                     last_rendered_page_name = page_name
 
@@ -717,5 +757,7 @@ except KeyboardInterrupt:
     print("Programm beendet durch Benutzer.")
 
 finally:
-    display.close()
-    bus.close()
+    if display:
+        display.close()
+    if bus:
+        bus.close()
