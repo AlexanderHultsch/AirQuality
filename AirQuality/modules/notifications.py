@@ -1,8 +1,17 @@
 from pathlib import Path
+import os
 import requests
 
 
 def load_pushover_keys(filename):
+    user_key = os.getenv("PUSHOVER_USER_KEY")
+    app_token = os.getenv("PUSHOVER_APP_TOKEN")
+    if user_key and app_token:
+        return {
+            "PUSHOVER_USER_KEY": user_key,
+            "PUSHOVER_APP_TOKEN": app_token,
+        }
+
     project_dir = Path(__file__).resolve().parent.parent
     key_file = project_dir / filename
     data = {}

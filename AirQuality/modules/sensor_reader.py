@@ -14,15 +14,28 @@ _last_scd41_data = {
 }
 
 
+def start_sen55_periodic_measurement(bus, sen55_addr):
+    try:
+        bus.i2c_rdwr(i2c_msg.write(sen55_addr, [0x00, 0x21]))
+        print("SEN55 Messung gestartet.")
+        return True
+    except Exception as e:
+        print("SEN55 Start fehlgeschlagen:", e)
+        return False
+
+
 def read_sen55_data(bus, sen55_addr):
-    bus.i2c_rdwr(i2c_msg.write(sen55_addr, [0x02, 0x02]))
-    time.sleep(0.01)
+    try:
+        bus.i2c_rdwr(i2c_msg.write(sen55_addr, [0x02, 0x02]))
+        time.sleep(0.01)
 
-    ready = i2c_msg.read(sen55_addr, 3)
-    bus.i2c_rdwr(ready)
-    r = list(ready)
+        ready = i2c_msg.read(sen55_addr, 3)
+        bus.i2c_rdwr(ready)
+        r = list(ready)
 
-    if ((r[0] << 8) | r[1]) == 1:
+        if ((r[0] << 8) | r[1]) != 1:
+            return None
+
         bus.i2c_rdwr(i2c_msg.write(sen55_addr, [0x03, 0xC4]))
         time.sleep(0.01)
 
@@ -40,8 +53,9 @@ def read_sen55_data(bus, sen55_addr):
             "voc": round(((d[18] << 8) | d[19]) / 10.0, 1),
             "nox": round(((d[21] << 8) | d[22]) / 10.0, 1),
         }
-
-    return None
+    except Exception as e:
+        print("SEN55 Lesefehler:", e)
+        return None
 
 
 def _scd41_crc8(data_bytes):
