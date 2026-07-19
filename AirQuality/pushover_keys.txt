@@ -1,2 +1,0 @@
-PUSHOVER_USER_KEY=uz2zdfzvzqb7g47hqq7hfzu4n8yje7
-PUSHOVER_APP_TOKEN=a7s3t823wqfwkh161w34eerks3932c
