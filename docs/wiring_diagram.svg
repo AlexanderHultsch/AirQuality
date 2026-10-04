@@ -1,0 +1,212 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1290" width="1500" height="1290" font-family="Helvetica, Arial, sans-serif">
+<rect width="1500" height="1290" fill="#ffffff"/>
+<text x="40" y="34" font-size="26" font-weight="bold" text-anchor="start" fill="#111" dominant-baseline="middle">AirQuality - Wiring Diagram</text>
+<text x="40" y="62" font-size="14" font-weight="normal" text-anchor="start" fill="#555" dominant-baseline="middle">SEN55, SCD41, NX48 display  -&gt;  WAGO 221-415 clamps (5V / GND / SDA / SCL)  -&gt;  USB-C supply and Raspberry Pi</text>
+<g transform="translate(0,50)">
+<rect x="40" y="100" width="230" height="228" rx="3" fill="#e8ebf5" stroke="#c3c9de" stroke-width="1.5"/>
+<line x1="140" y1="100" x2="140" y2="328" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="90" y="214.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">SEN55</text>
+<text x="205" y="119.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">VDD</text>
+<line x1="140" y1="138" x2="270" y2="138" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="157.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">GND</text>
+<line x1="140" y1="176" x2="270" y2="176" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="195.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">SDA</text>
+<line x1="140" y1="214" x2="270" y2="214" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="233.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">SCL</text>
+<line x1="140" y1="252" x2="270" y2="252" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="271.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">SEL</text>
+<line x1="140" y1="290" x2="270" y2="290" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="309.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">N.A.</text>
+<rect x="40" y="400" width="230" height="152" rx="3" fill="#e8ebf5" stroke="#c3c9de" stroke-width="1.5"/>
+<line x1="140" y1="400" x2="140" y2="552" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="90" y="476.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">SCD41</text>
+<text x="205" y="419.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">SDA</text>
+<line x1="140" y1="438" x2="270" y2="438" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="457.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">SCL</text>
+<line x1="140" y1="476" x2="270" y2="476" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="495.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">GND</text>
+<line x1="140" y1="514" x2="270" y2="514" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="533.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">VCC</text>
+<rect x="40" y="640" width="230" height="152" rx="3" fill="#e8ebf5" stroke="#c3c9de" stroke-width="1.5"/>
+<line x1="140" y1="640" x2="140" y2="792" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="90" y="716.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">NX48</text>
+<text x="205" y="659.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">+5V</text>
+<line x1="140" y1="678" x2="270" y2="678" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="697.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">TX</text>
+<line x1="140" y1="716" x2="270" y2="716" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="735.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">RX</text>
+<line x1="140" y1="754" x2="270" y2="754" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="205" y="773.0" font-size="14" font-weight="normal" text-anchor="middle" fill="#111" dominant-baseline="middle">GND</text>
+<rect x="600" y="90" width="200" height="190" rx="3" fill="#e8ebf5" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="700.0" y="105.0" font-size="14" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">WAGO 5V</text>
+<rect x="603" y="122" width="194" height="28" rx="2" fill="#a6a6a6"/>
+<text x="700.0" y="136.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#000" dominant-baseline="middle">SEN55 VDD</text>
+<rect x="603" y="154" width="194" height="28" rx="2" fill="#f5b800"/>
+<text x="700.0" y="168.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#000" dominant-baseline="middle">SCD41 VCC</text>
+<rect x="603" y="186" width="194" height="28" rx="2" fill="#e02020"/>
+<text x="700.0" y="200.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff" dominant-baseline="middle">NX48 +5V</text>
+<rect x="603" y="218" width="194" height="28" rx="2" fill="#e02020"/>
+<text x="700.0" y="232.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff" dominant-baseline="middle">to USB-C supply 5V</text>
+<rect x="603" y="250" width="194" height="28" rx="2" fill="#f4f5fa" stroke="#c3c9de" stroke-dasharray="3 3"/>
+<text x="700.0" y="264.0" font-size="11" font-weight="normal" text-anchor="middle" fill="#aaa" dominant-baseline="middle">free</text>
+<rect x="600" y="310" width="200" height="190" rx="3" fill="#e8ebf5" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="700.0" y="325.0" font-size="14" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">WAGO GND</text>
+<rect x="603" y="342" width="194" height="28" rx="2" fill="#3b6fc4"/>
+<text x="700.0" y="356.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff" dominant-baseline="middle">SEN55 GND</text>
+<rect x="603" y="374" width="194" height="28" rx="2" fill="#a6a6a6"/>
+<text x="700.0" y="388.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#000" dominant-baseline="middle">SCD41 GND</text>
+<rect x="603" y="406" width="194" height="28" rx="2" fill="#1a1a1a"/>
+<text x="700.0" y="420.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff" dominant-baseline="middle">NX48 GND</text>
+<rect x="603" y="438" width="194" height="28" rx="2" fill="#1a1a1a"/>
+<text x="700.0" y="452.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff" dominant-baseline="middle">to USB-C supply GND</text>
+<rect x="603" y="470" width="194" height="28" rx="2" fill="#1a1a1a"/>
+<text x="700.0" y="484.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff" dominant-baseline="middle">to Pi pin 9 (GND)</text>
+<rect x="600" y="530" width="200" height="190" rx="3" fill="#e8ebf5" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="700.0" y="545.0" font-size="14" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">WAGO SDA</text>
+<rect x="603" y="562" width="194" height="28" rx="2" fill="#5aa02c"/>
+<text x="700.0" y="576.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff" dominant-baseline="middle">SEN55 SDA</text>
+<rect x="603" y="594" width="194" height="28" rx="2" fill="#1a1a1a"/>
+<text x="700.0" y="608.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff" dominant-baseline="middle">SCD41 SDA</text>
+<rect x="603" y="626" width="194" height="28" rx="2" fill="#5aa02c"/>
+<text x="700.0" y="640.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff" dominant-baseline="middle">to Pi pin 3 (SDA)</text>
+<rect x="603" y="658" width="194" height="28" rx="2" fill="#f4f5fa" stroke="#c3c9de" stroke-dasharray="3 3"/>
+<text x="700.0" y="672.0" font-size="11" font-weight="normal" text-anchor="middle" fill="#aaa" dominant-baseline="middle">free</text>
+<rect x="603" y="690" width="194" height="28" rx="2" fill="#f4f5fa" stroke="#c3c9de" stroke-dasharray="3 3"/>
+<text x="700.0" y="704.0" font-size="11" font-weight="normal" text-anchor="middle" fill="#aaa" dominant-baseline="middle">free</text>
+<rect x="600" y="750" width="200" height="190" rx="3" fill="#e8ebf5" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="700.0" y="765.0" font-size="14" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">WAGO SCL</text>
+<rect x="603" y="782" width="194" height="28" rx="2" fill="#f5b800"/>
+<text x="700.0" y="796.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#000" dominant-baseline="middle">SEN55 SCL</text>
+<rect x="603" y="814" width="194" height="28" rx="2" fill="#e02020"/>
+<text x="700.0" y="828.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff" dominant-baseline="middle">SCD41 SCL</text>
+<rect x="603" y="846" width="194" height="28" rx="2" fill="#f5b800"/>
+<text x="700.0" y="860.0" font-size="12" font-weight="bold" text-anchor="middle" fill="#000" dominant-baseline="middle">to Pi pin 5 (SCL)</text>
+<rect x="603" y="878" width="194" height="28" rx="2" fill="#f4f5fa" stroke="#c3c9de" stroke-dasharray="3 3"/>
+<text x="700.0" y="892.0" font-size="11" font-weight="normal" text-anchor="middle" fill="#aaa" dominant-baseline="middle">free</text>
+<rect x="603" y="910" width="194" height="28" rx="2" fill="#f4f5fa" stroke="#c3c9de" stroke-dasharray="3 3"/>
+<text x="700.0" y="924.0" font-size="11" font-weight="normal" text-anchor="middle" fill="#aaa" dominant-baseline="middle">free</text>
+<path d="M270,119.0 C435.0,119.0 435.0,136.0 600,136.0" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,119.0 C435.0,119.0 435.0,136.0 600,136.0" fill="none" stroke="#a6a6a6" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="119.0" r="4" fill="#a6a6a6" stroke="#fff" stroke-width="1.5"/>
+<circle cx="600" cy="136.0" r="4" fill="#a6a6a6" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,533.0 C435.0,533.0 435.0,168.0 600,168.0" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,533.0 C435.0,533.0 435.0,168.0 600,168.0" fill="none" stroke="#f5b800" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="533.0" r="4" fill="#f5b800" stroke="#fff" stroke-width="1.5"/>
+<circle cx="600" cy="168.0" r="4" fill="#f5b800" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,659.0 C435.0,659.0 435.0,200.0 600,200.0" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,659.0 C435.0,659.0 435.0,200.0 600,200.0" fill="none" stroke="#e02020" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="659.0" r="4" fill="#e02020" stroke="#fff" stroke-width="1.5"/>
+<circle cx="600" cy="200.0" r="4" fill="#e02020" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,157.0 C435.0,157.0 435.0,356.0 600,356.0" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,157.0 C435.0,157.0 435.0,356.0 600,356.0" fill="none" stroke="#3b6fc4" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="157.0" r="4" fill="#3b6fc4" stroke="#fff" stroke-width="1.5"/>
+<circle cx="600" cy="356.0" r="4" fill="#3b6fc4" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,495.0 C435.0,495.0 435.0,388.0 600,388.0" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,495.0 C435.0,495.0 435.0,388.0 600,388.0" fill="none" stroke="#a6a6a6" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="495.0" r="4" fill="#a6a6a6" stroke="#fff" stroke-width="1.5"/>
+<circle cx="600" cy="388.0" r="4" fill="#a6a6a6" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,773.0 C435.0,773.0 435.0,420.0 600,420.0" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,773.0 C435.0,773.0 435.0,420.0 600,420.0" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="773.0" r="4" fill="#1a1a1a" stroke="#fff" stroke-width="1.5"/>
+<circle cx="600" cy="420.0" r="4" fill="#1a1a1a" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,195.0 C435.0,195.0 435.0,576.0 600,576.0" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,195.0 C435.0,195.0 435.0,576.0 600,576.0" fill="none" stroke="#5aa02c" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="195.0" r="4" fill="#5aa02c" stroke="#fff" stroke-width="1.5"/>
+<circle cx="600" cy="576.0" r="4" fill="#5aa02c" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,419.0 C435.0,419.0 435.0,608.0 600,608.0" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,419.0 C435.0,419.0 435.0,608.0 600,608.0" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="419.0" r="4" fill="#1a1a1a" stroke="#fff" stroke-width="1.5"/>
+<circle cx="600" cy="608.0" r="4" fill="#1a1a1a" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,233.0 C435.0,233.0 435.0,796.0 600,796.0" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,233.0 C435.0,233.0 435.0,796.0 600,796.0" fill="none" stroke="#f5b800" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="233.0" r="4" fill="#f5b800" stroke="#fff" stroke-width="1.5"/>
+<circle cx="600" cy="796.0" r="4" fill="#f5b800" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,457.0 C435.0,457.0 435.0,828.0 600,828.0" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,457.0 C435.0,457.0 435.0,828.0 600,828.0" fill="none" stroke="#e02020" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="457.0" r="4" fill="#e02020" stroke="#fff" stroke-width="1.5"/>
+<circle cx="600" cy="828.0" r="4" fill="#e02020" stroke="#fff" stroke-width="1.5"/>
+<rect x="1080" y="100" width="260" height="112" rx="3" fill="#e8ebf5" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1210.0" y="118" font-size="14" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">USB-C 5 V power supply</text>
+<line x1="1080" y1="136" x2="1340" y2="136" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1120" y="155" font-size="14" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">+5V</text>
+<line x1="1080" y1="174" x2="1340" y2="174" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1120" y="193" font-size="14" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">GND</text>
+<path d="M800,232.0 C940.0,232.0 940.0,155 1080,155" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M800,232.0 C940.0,232.0 940.0,155 1080,155" fill="none" stroke="#e02020" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="800" cy="232.0" r="4" fill="#e02020" stroke="#fff" stroke-width="1.5"/>
+<circle cx="1080" cy="155" r="4" fill="#e02020" stroke="#fff" stroke-width="1.5"/>
+<path d="M800,452.0 C940.0,452.0 940.0,193 1080,193" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M800,452.0 C940.0,452.0 940.0,193 1080,193" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="800" cy="452.0" r="4" fill="#1a1a1a" stroke="#fff" stroke-width="1.5"/>
+<circle cx="1080" cy="193" r="4" fill="#1a1a1a" stroke="#fff" stroke-width="1.5"/>
+<rect x="1080" y="330" width="260" height="300" rx="3" fill="#e8ebf5" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1210.0" y="347" font-size="13" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">Raspberry Pi 5 - GPIO header (pins 1-14)</text>
+<rect x="1080" y="364" width="130" height="38" fill="#f4f5fa" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1145" y="383" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#999" dominant-baseline="middle">1 · 3V3</text>
+<rect x="1210" y="364" width="130" height="38" fill="#f4f5fa" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1275" y="383" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#999" dominant-baseline="middle">2 · 5V (unused)</text>
+<rect x="1080" y="402" width="130" height="38" fill="#cfe3c4" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1145" y="421" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">3 · SDA1 (GPIO2)</text>
+<rect x="1210" y="402" width="130" height="38" fill="#f4f5fa" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1275" y="421" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#999" dominant-baseline="middle">4 · 5V (unused)</text>
+<rect x="1080" y="440" width="130" height="38" fill="#cfe3c4" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1145" y="459" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">5 · SCL1 (GPIO3)</text>
+<rect x="1210" y="440" width="130" height="38" fill="#f4f5fa" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1275" y="459" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#999" dominant-baseline="middle">6 · GND</text>
+<rect x="1080" y="478" width="130" height="38" fill="#f4f5fa" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1145" y="497" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#999" dominant-baseline="middle">7 · GPIO4</text>
+<rect x="1210" y="478" width="130" height="38" fill="#cfe3c4" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1275" y="497" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">8 · TXD0 (GPIO14)</text>
+<rect x="1080" y="516" width="130" height="38" fill="#cfe3c4" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1145" y="535" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">9 · GND</text>
+<rect x="1210" y="516" width="130" height="38" fill="#cfe3c4" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1275" y="535" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">10 · RXD0 (GPIO15)</text>
+<rect x="1080" y="554" width="130" height="38" fill="#f4f5fa" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1145" y="573" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#999" dominant-baseline="middle">11 · GPIO17</text>
+<rect x="1210" y="554" width="130" height="38" fill="#f4f5fa" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1275" y="573" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#999" dominant-baseline="middle">12 · GPIO18</text>
+<rect x="1080" y="592" width="130" height="38" fill="#f4f5fa" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1145" y="611" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#999" dominant-baseline="middle">13 · GPIO27</text>
+<rect x="1210" y="592" width="130" height="38" fill="#cfe3c4" stroke="#c3c9de" stroke-width="1.5"/>
+<text x="1275" y="611" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#111" dominant-baseline="middle">14 · GND</text>
+<path d="M800,484.0 C940.0,484.0 940.0,535 1080,535" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M800,484.0 C940.0,484.0 940.0,535 1080,535" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="800" cy="484.0" r="4" fill="#1a1a1a" stroke="#fff" stroke-width="1.5"/>
+<circle cx="1080" cy="535" r="4" fill="#1a1a1a" stroke="#fff" stroke-width="1.5"/>
+<path d="M800,640.0 C940.0,640.0 940.0,421 1080,421" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M800,640.0 C940.0,640.0 940.0,421 1080,421" fill="none" stroke="#5aa02c" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="800" cy="640.0" r="4" fill="#5aa02c" stroke="#fff" stroke-width="1.5"/>
+<circle cx="1080" cy="421" r="4" fill="#5aa02c" stroke="#fff" stroke-width="1.5"/>
+<path d="M800,860.0 C940.0,860.0 940.0,459 1080,459" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M800,860.0 C940.0,860.0 940.0,459 1080,459" fill="none" stroke="#f5b800" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="800" cy="860.0" r="4" fill="#f5b800" stroke="#fff" stroke-width="1.5"/>
+<circle cx="1080" cy="459" r="4" fill="#f5b800" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,697.0 L330,697.0 L330,968 L1420,968 L1420,535 L1340,535" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,697.0 L330,697.0 L330,968 L1420,968 L1420,535 L1340,535" fill="none" stroke="#3b6fc4" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="697.0" r="4" fill="#3b6fc4" stroke="#fff" stroke-width="1.5"/>
+<circle cx="1340" cy="535" r="4" fill="#3b6fc4" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,735.0 L310,735.0 L310,982 L1440,982 L1440,497 L1340,497" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,735.0 L310,735.0 L310,982 L1440,982 L1440,497 L1340,497" fill="none" stroke="#f5b800" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="735.0" r="4" fill="#f5b800" stroke="#fff" stroke-width="1.5"/>
+<circle cx="1340" cy="497" r="4" fill="#f5b800" stroke="#fff" stroke-width="1.5"/>
+<path d="M270,271.0 L290,271.0 L290,72 L1460,72 L1460,611 L1340,611" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,271.0 L290,271.0 L290,72 L1460,72 L1460,611 L1340,611" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="270" cy="271.0" r="4" fill="#1a1a1a" stroke="#fff" stroke-width="1.5"/>
+<circle cx="1340" cy="611" r="4" fill="#1a1a1a" stroke="#fff" stroke-width="1.5"/>
+<text x="840" y="954" font-size="12" font-weight="bold" text-anchor="middle" fill="#3b6fc4" dominant-baseline="middle">NX48 TX (blue)  -&gt;  Pi pin 10 RXD0   (direct, no clamp)</text>
+<text x="840" y="996" font-size="12" font-weight="bold" text-anchor="middle" fill="#b58600" dominant-baseline="middle">NX48 RX (yellow)  -&gt;  Pi pin 8 TXD0   (direct, no clamp)</text>
+<text x="560" y="58" font-size="12" font-weight="bold" text-anchor="middle" fill="#333" dominant-baseline="middle">SEN55 SEL (black)  -&gt;  Pi pin 14 GND   (direct, selects I²C mode)</text>
+<rect x="40" y="1020" width="1420" height="190" rx="3" fill="#fffbe6" stroke="#e6d98a" stroke-width="1.5"/>
+<text x="60" y="1044" font-size="13.5" font-weight="bold" text-anchor="start" fill="#111" dominant-baseline="middle">Notes</text>
+<text x="60" y="1070" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle">• Pi 5V pins (2/4) stay unconnected: sensors and display get</text>
+<text x="60" y="1096" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle">  5 V from the USB-C supply through the 5V clamp.</text>
+<text x="60" y="1122" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle">• GND clamp joins supply GND and Pi GND (pin 9). A common</text>
+<text x="60" y="1148" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle">  ground is required for I²C and UART.</text>
+<text x="60" y="1174" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle">• SEN55 SEL on GND = I²C mode (as in the code comments).</text>
+<text x="770" y="1044" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle"></text>
+<text x="770" y="1070" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle">• I²C bus 1: SEN55 0x69, SCD41 0x62; pull-ups are on the Pi.</text>
+<text x="770" y="1096" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle">• UART is crossed: NX48 TX -&gt; Pi RXD, NX48 RX -&gt; Pi TXD</text>
+<text x="770" y="1122" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle">  (/dev/ttyAMA0, dtoverlay=uart0-pi5 in Install.txt).</text>
+<text x="770" y="1148" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle">• Wire colours follow your pictures. Supply leads (red/black)</text>
+<text x="770" y="1174" font-size="13.5" font-weight="normal" text-anchor="start" fill="#111" dominant-baseline="middle">  and Pi leads (SDA green, SCL yellow) are my assumptions.</text>
+</g></svg>
